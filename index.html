@@ -625,6 +625,7 @@ window.closeGameModal=()=>{
   document.getElementById("game-modal").classList.remove("open");
   activeGameId=null;activeGameMsgId=null;activeGameData=null;
   if(snakeInterval){clearInterval(snakeInterval);snakeInterval=null;}
+  if(gameUIUnsub){gameUIUnsub();gameUIUnsub=null;}
 };
 
 function openGameModal(gameId,msgId,msgData){
@@ -634,24 +635,27 @@ function openGameModal(gameId,msgId,msgData){
   document.getElementById("game-modal-title").textContent=`${game.icon} ${game.name}`;
   const body=document.getElementById("game-modal-body");body.innerHTML="";
   const gameRef=ref(db,`games/${msgId}`);
-  // Initialize game state if host
-  if(msgData.name===myUsername){
-    get(gameRef).then(snap=>{
-      if(!snap.exists())initGameState(gameId,gameRef);
-      renderGameUI(gameId,gameRef,body);
-    });
-  } else {
-    // Join as opponent
-    get(gameRef).then(snap=>{
+
+  get(gameRef).then(snap=>{
+    if(msgData.name===myUsername){
+      // Host: init if no state yet
+      if(!snap.exists()){
+        initGameState(gameId,gameRef);
+      }
+    } else {
+      // Joiner: set player2 if not already set
       if(snap.exists()){
         const state=snap.val();
         if(!state.player2){
-          set(ref(db,`games/${msgId}/player2`),myUsername);
+          set(ref(db,`games/${msgId}/player2`),myUsername).then(()=>{
+            set(ref(db,`games/${msgId}/status`),"playing");
+          });
         }
       }
-      renderGameUI(gameId,gameRef,body);
-    });
-  }
+    }
+    // Always render — onValue will keep it live
+    renderGameUI(gameId,gameRef,body);
+  });
 }
 
 function initGameState(gameId,gameRef){
@@ -677,9 +681,12 @@ function initGameState(gameId,gameRef){
 }
 
 // ---- GAME UIs ----
+let gameUIUnsub=null;
 function renderGameUI(gameId,gameRef,body){
-  onValue(gameRef,snap=>{
-    if(!snap.exists())return;
+  if(gameUIUnsub){gameUIUnsub();gameUIUnsub=null;}
+  gameUIUnsub=onValue(gameRef,snap=>{
+    if(!document.getElementById("game-modal").classList.contains("open"))return;
+    if(!snap.exists()){body.innerHTML='<div class="game-status">Loading…</div>';return;}
     const state=snap.val();
     body.innerHTML="";
     if(gameId==="ttt")renderTTT(state,gameRef,body);
