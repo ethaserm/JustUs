@@ -633,29 +633,35 @@ function openGameModal(gameId,msgId,msgData){
   document.getElementById("game-modal").classList.add("open");
   const game=GAMES.find(g=>g.id===gameId);
   document.getElementById("game-modal-title").textContent=`${game.icon} ${game.name}`;
-  const body=document.getElementById("game-modal-body");body.innerHTML="";
+  const body=document.getElementById("game-modal-body");body.innerHTML="<div class='game-status'>Loading…</div>";
   const gameRef=ref(db,`games/${msgId}`);
+  const isHost=msgData.name===myUsername;
 
-  get(gameRef).then(snap=>{
-    if(msgData.name===myUsername){
-      // Host: init if no state yet
+  if(isHost){
+    // Host always re-initialises if state missing
+    get(gameRef).then(snap=>{
       if(!snap.exists()){
         initGameState(gameId,gameRef);
       }
-    } else {
-      // Joiner: set player2 if not already set
-      if(snap.exists()){
-        const state=snap.val();
-        if(!state.player2){
-          set(ref(db,`games/${msgId}/player2`),myUsername).then(()=>{
-            set(ref(db,`games/${msgId}/status`),"playing");
-          });
-        }
+      renderGameUI(gameId,gameRef,body);
+    });
+  } else {
+    // Joiner: write player2 + set status=playing, THEN start listener
+    get(gameRef).then(snap=>{
+      const updates={};
+      if(!snap.exists()||!snap.val().player2){
+        updates[`games/${msgId}/player2`]=myUsername;
+        updates[`games/${msgId}/status`]="playing";
       }
-    }
-    // Always render — onValue will keep it live
-    renderGameUI(gameId,gameRef,body);
-  });
+      if(Object.keys(updates).length){
+        // Use individual sets so we don't overwrite the whole state
+        Promise.all(Object.entries(updates).map(([path,val])=>set(ref(db,path),val)))
+          .then(()=>renderGameUI(gameId,gameRef,body));
+      } else {
+        renderGameUI(gameId,gameRef,body);
+      }
+    });
+  }
 }
 
 function initGameState(gameId,gameRef){
