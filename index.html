@@ -212,6 +212,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .g-btn{background:#dc143c;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;}
 .g-btn:hover{background:#a50e2d;}
 .g-btn:disabled{background:#2a2a2a;color:#555;cursor:not-allowed;}
+/* REACTIONS */
+.msg-reactions{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px;}
+.reaction-badge{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;padding:2px 7px;font-size:12px;cursor:pointer;transition:background 0.15s;display:flex;align-items:center;gap:3px;}
+.reaction-badge:hover{background:#252525;}
+.reaction-badge.mine{background:#1e0508;border-color:#dc143c;}
+.react-picker{position:absolute;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:8px;display:flex;gap:4px;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+.react-btn{font-size:18px;background:none;border:none;cursor:pointer;padding:3px;border-radius:6px;transition:background 0.1s;}
+.react-btn:hover{background:#2a2a2a;}
+/* READ RECEIPTS */
+.read-receipt{font-size:10px;color:#555;padding:0 4px;display:flex;align-items:center;gap:3px;}
+.read-receipt.seen{color:#22c55e;}
+/* MSG ACTIONS */
+.msg-actions{display:none;position:absolute;right:0;top:-28px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:2px;display:none;gap:2px;z-index:10;}
+.msg-wrapper:hover .msg-actions{display:flex;}
+.msg-action-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:4px 6px;border-radius:5px;color:#888;transition:background 0.1s;}
+.msg-action-btn:hover{background:#252525;color:#f0f0f0;}
+.msg-wrapper{position:relative;}
+/* EDIT INPUT */
+.edit-input{background:#1a1a1a;border:1px solid #dc143c;border-radius:10px;color:#f0f0f0;font-size:14px;padding:8px 12px;outline:none;width:100%;font-family:inherit;}
+/* GIPHY */
+#giphy-picker{position:fixed;bottom:62px;left:248px;background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:12px;display:none;flex-direction:column;gap:8px;width:280px;z-index:50;max-height:340px;}
+#giphy-picker.open{display:flex;}
+#giphy-search{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;color:#f0f0f0;font-size:13px;padding:8px 12px;outline:none;width:100%;}
+#giphy-search:focus{border-color:#dc143c;}
+#giphy-results{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto;max-height:240px;}
+.giphy-item{border-radius:8px;cursor:pointer;width:100%;aspect-ratio:1;object-fit:cover;transition:opacity 0.15s;}
+.giphy-item:hover{opacity:0.8;}
+/* AVATAR PICKER */
+#avatar-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:300;}
+#avatar-modal.open{display:flex;}
+.avatar-box{background:#111;border:1px solid #222;border-radius:16px;padding:24px;width:300px;display:flex;flex-direction:column;gap:14px;}
+.avatar-box h3{font-size:15px;font-weight:700;}
+.avatar-preview{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;margin:0 auto;}
+.colour-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+.colour-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color 0.15s;}
+.colour-swatch.selected{border-color:#f0f0f0;}
+
 </style>
 </head>
 <body>
@@ -220,7 +257,10 @@ const FIREBASE_CONFIG={apiKey:"AIzaSyD_lb5_UyY2K2DQ3AOCopHcs1p4Kp_21vY",authDoma
 const ROOMS=[{id:"general",name:"General",icon:"💬"},{id:"gaming",name:"Gaming",icon:"🎮"},{id:"random",name:"Random",icon:"🎲"},{id:"music",name:"Music",icon:"🎵"},{id:"movies",name:"Movies",icon:"🎬"}];
 const EMOJIS=["😀","😂","😍","🥹","😎","🤔","😭","🔥","💀","👀","🙏","👏","💯","🎉","❤️","🫡","✅","😤","💤","🤝","😏","🥶","🤯","👋","⚡"];
 const GAMES=[{id:"ttt",name:"Tic Tac Toe",icon:"⭕",desc:"2 players • Classic"},{id:"c4",name:"Connect 4",icon:"🔴",desc:"2 players • Drop discs"},{id:"rps",name:"Rock Paper Scissors",icon:"✊",desc:"2 players • Best of 3"},{id:"wordle",name:"Wordle",icon:"🟩",desc:"1-2 players • Guess word"},{id:"hangman",name:"Hangman",icon:"🪢",desc:"2 players • Guess letters"},{id:"chess",name:"Chess",icon:"♟️",desc:"2 players • Full game"},{id:"snake",name:"Snake",icon:"🐍",desc:"1 player • High score"},{id:"battleship",name:"Battleship",icon:"🚢",desc:"2 players • Sink ships"}];
-const IMGUR_CLIENT_ID="546c25a59c58ad7";
+const IMGBB_KEY="0fedaba33b0fca5eec75f16568047712";
+const GIPHY_KEY="GlVGYHkr3wsW10x0XNnEBIzpAgmxFXgW";
+const AVATAR_COLOURS=["#dc143c","#6c63ff","#22c55e","#f59e0b","#3b82f6","#ec4899","#14b8a6","#f97316","#8b5cf6","#06b6d4","#84cc16","#ef4444"];
+const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
 </script>
 
 <!-- AUTH -->
@@ -311,10 +351,24 @@ const IMGUR_CLIENT_ID="546c25a59c58ad7";
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       </button>
       <input type="file" id="img-input" accept="image/*" style="display:none"/>
+      <button class="ibar-btn" id="giphy-btn" title="GIFs">GIF</button>
       <button class="ibar-btn" id="game-btn" title="Games">🎮</button>
       <textarea id="msg-input" placeholder="Message..." rows="1"></textarea>
       <button id="send-btn"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
     </div>
+    <div id="giphy-picker">
+    <input id="giphy-search" placeholder="Search GIFs..." autocomplete="off"/>
+    <div id="giphy-results"></div>
+  </div>
+</div>
+</div>
+
+<div id="avatar-modal">
+  <div class="avatar-box">
+    <h3>Customise Avatar</h3>
+    <div class="avatar-preview" id="avatar-preview">E</div>
+    <div class="colour-grid" id="colour-grid"></div>
+    <button class="g-btn" onclick="saveAvatar()">Save</button>
   </div>
 </div>
 
@@ -365,6 +419,15 @@ function startApp(){
   document.getElementById("app").style.display="flex";
   document.getElementById("user-bar-name").textContent=myUsername;
   document.getElementById("user-avatar").textContent=myUsername[0].toUpperCase();
+  // Load avatar colour
+  get(ref(db,`users/${myUsername}/colour`)).then(snap=>{
+    const colour=snap.val()||"#dc143c";
+    document.getElementById("user-avatar").style.background=colour;
+    window._myColour=colour;
+  });
+  // Make avatar clickable to open picker
+  document.getElementById("user-avatar").style.cursor="cursor";
+  document.getElementById("user-avatar").addEventListener("click",openAvatarModal);
   initSound();
   if(Notification.permission==="default")Notification.requestPermission();
   const myOnlineRef=ref(db,`online/${myUsername}`);
@@ -494,17 +557,106 @@ function renderMsg(id,msg){
   wrapper.className=`msg-wrapper ${isMe?"me":"them"}`;wrapper.dataset.id=id;
   const ts=new Date(msg.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
   if(!isMe)wrapper.innerHTML+=`<div class="sender-name">${msg.name}</div>`;
+
+  // Message actions bar (hover)
+  if(!msg.uploading&&!msg.gifUrl){
+    const actions=document.createElement("div");actions.className="msg-actions";actions.style.cssText="position:absolute;top:-30px;"+(isMe?"right:0":"left:0")+";background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:2px;display:none;gap:2px;z-index:10;";
+    // React button
+    const reactBtn=document.createElement("button");reactBtn.className="msg-action-btn";reactBtn.textContent="😊";reactBtn.title="React";
+    reactBtn.addEventListener("click",(e)=>{e.stopPropagation();showReactPicker(e,id);});
+    actions.appendChild(reactBtn);
+    if(isMe&&!msg.imageUrl&&!msg.gifUrl){
+      // Edit
+      const editBtn=document.createElement("button");editBtn.className="msg-action-btn";editBtn.textContent="✏️";editBtn.title="Edit";
+      editBtn.addEventListener("click",()=>startEdit(id,msg,wrapper));
+      actions.appendChild(editBtn);
+    }
+    if(isMe){
+      // Delete
+      const delBtn=document.createElement("button");delBtn.className="msg-action-btn";delBtn.textContent="🗑️";delBtn.title="Delete";
+      delBtn.addEventListener("click",()=>{if(confirm("Delete this message?"))remove(ref(db,`${getMsgPath()}/${id}`));});
+      actions.appendChild(delBtn);
+    }
+    wrapper.appendChild(actions);
+    wrapper.addEventListener("mouseenter",()=>actions.style.display="flex");
+    wrapper.addEventListener("mouseleave",()=>actions.style.display="none");
+  }
+
   if(msg.imageUrl){
     const img=document.createElement("img");img.src=msg.imageUrl;img.className="msg-image";
     img.addEventListener("click",()=>{document.getElementById("lightbox-img").src=msg.imageUrl;document.getElementById("lightbox").classList.add("open");});
     wrapper.appendChild(img);
+  } else if(msg.gifUrl){
+    const img=document.createElement("img");img.src=msg.gifUrl;img.className="msg-image";img.style.maxWidth="200px";
+    wrapper.appendChild(img);
   } else {
     const bubble=document.createElement("div");
     bubble.className="bubble"+(msg.uploading?" img-uploading":"");
-    bubble.textContent=msg.text;wrapper.appendChild(bubble);
+    bubble.textContent=msg.edited?msg.text+" (edited)":msg.text;
+    wrapper.appendChild(bubble);
   }
+
+  // Read receipt
+  if(isMe&&!msg.uploading){
+    const rr=document.createElement("div");rr.className="read-receipt"+(msg.readBy&&Object.keys(msg.readBy).filter(u=>u!==myUsername).length?" seen":"");
+    rr.textContent=msg.readBy&&Object.keys(msg.readBy).filter(u=>u!==myUsername).length?"✓✓ Seen":"✓ Sent";
+    wrapper.appendChild(rr);
+  }
+
   const tsEl=document.createElement("div");tsEl.className="timestamp";tsEl.textContent=ts;
-  wrapper.appendChild(tsEl);container.appendChild(wrapper);container.scrollTop=container.scrollHeight;
+  wrapper.appendChild(tsEl);
+
+  // Reactions
+  if(msg.reactions&&Object.keys(msg.reactions).length){
+    const reactRow=document.createElement("div");reactRow.className="msg-reactions";
+    const counts={};
+    Object.entries(msg.reactions).forEach(([user,emoji])=>{counts[emoji]=(counts[emoji]||[]);counts[emoji].push(user);});
+    Object.entries(counts).forEach(([emoji,users])=>{
+      const badge=document.createElement("div");badge.className="reaction-badge"+(users.includes(myUsername)?" mine":"");
+      badge.textContent=`${emoji} ${users.length}`;badge.title=users.join(", ");
+      badge.addEventListener("click",()=>toggleReaction(id,emoji));
+      reactRow.appendChild(badge);
+    });
+    wrapper.appendChild(reactRow);
+  }
+
+  container.appendChild(wrapper);container.scrollTop=container.scrollHeight;
+  // Mark as read
+  if(!isMe&&!msg.uploading)set(ref(db,`${getMsgPath()}/${id}/readBy/${myUsername}`),true);
+}
+
+function startEdit(id,msg,wrapper){
+  const bubble=wrapper.querySelector(".bubble");if(!bubble)return;
+  const inp=document.createElement("input");inp.className="edit-input";inp.value=msg.text;
+  bubble.replaceWith(inp);inp.focus();
+  const save=()=>{const t=inp.value.trim();if(t&&t!==msg.text)set(ref(db,`${getMsgPath()}/${id}`),{...msg,text:t,edited:true});inp.replaceWith(bubble);};
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();save();}if(e.key==="Escape")inp.replaceWith(bubble);});
+  inp.addEventListener("blur",save);
+}
+
+function toggleReaction(msgId,emoji){
+  const path=`${getMsgPath()}/${msgId}/readBy`;
+  const reactPath=`${getMsgPath()}/${msgId}/reactions/${myUsername}`;
+  get(ref(db,reactPath)).then(snap=>{
+    if(snap.val()===emoji)remove(ref(db,reactPath));
+    else set(ref(db,reactPath),emoji);
+  });
+}
+
+let reactPickerEl=null;
+function showReactPicker(e,msgId){
+  if(reactPickerEl)reactPickerEl.remove();
+  const picker=document.createElement("div");picker.className="react-picker";
+  REACT_EMOJIS.forEach(em=>{
+    const btn=document.createElement("button");btn.className="react-btn";btn.textContent=em;
+    btn.addEventListener("click",()=>{toggleReaction(msgId,em);picker.remove();reactPickerEl=null;});
+    picker.appendChild(btn);
+  });
+  document.body.appendChild(picker);
+  const rect=e.target.getBoundingClientRect();
+  picker.style.top=`${rect.top-44}px`;picker.style.left=`${rect.left}px`;
+  reactPickerEl=picker;
+  setTimeout(()=>document.addEventListener("click",()=>{picker.remove();reactPickerEl=null;},{once:true}),10);
 }
 
 function renderGameCard(id,msg,container){
@@ -577,21 +729,68 @@ function setupInputHandlers(){
   document.addEventListener("click",()=>{
     document.getElementById("emoji-picker").classList.remove("open");
     document.getElementById("game-picker").classList.remove("open");
+    document.getElementById("giphy-picker").classList.remove("open");
   });
   document.getElementById("input-bar").addEventListener("dragover",e=>e.preventDefault());
   document.getElementById("input-bar").addEventListener("drop",e=>e.preventDefault());
+
+  // Giphy button
+  document.getElementById("giphy-btn").addEventListener("click",e=>{
+    e.stopPropagation();
+    document.getElementById("emoji-picker").classList.remove("open");
+    document.getElementById("game-picker").classList.remove("open");
+    const gp=document.getElementById("giphy-picker");
+    gp.classList.toggle("open");
+    if(gp.classList.contains("open")){
+      document.getElementById("giphy-search").focus();
+      loadGiphy("trending");
+    }
+  });
+  document.getElementById("giphy-search").addEventListener("input",function(){
+    clearTimeout(window._giphyTimer);
+    window._giphyTimer=setTimeout(()=>loadGiphy(this.value||"trending"),400);
+  });
+
+  // Real push notifications
+  setupPushNotifications();
+}
+
+async function loadGiphy(query){
+  const res=await fetch(`https://api.giphy.com/v1/gifs/${query==="trending"?"trending":"search"}?api_key=GlVGYHkr3wsW10x0XNnEBIzpAgmxFXgW&limit=12${query!=="trending"?"&q="+encodeURIComponent(query):""}&rating=g`);
+  const data=await res.json();
+  const grid=document.getElementById("giphy-results");grid.innerHTML="";
+  (data.data||[]).forEach(gif=>{
+    const img=document.createElement("img");img.className="giphy-item";
+    img.src=gif.images.fixed_height_small.url;img.loading="lazy";
+    img.addEventListener("click",()=>{
+      if(!currentChatId)return;
+      push(ref(db,getMsgPath()),{name:myUsername,gifUrl:gif.images.downsized.url,text:"",timestamp:Date.now()});
+      document.getElementById("giphy-picker").classList.remove("open");
+      document.getElementById("giphy-search").value="";
+    });
+    grid.appendChild(img);
+  });
+}
+
+async function setupPushNotifications(){
+  if(!("serviceWorker" in navigator)||!("PushManager" in window))return;
+  const perm=await Notification.requestPermission();
+  if(perm!=="granted")return;
+  // Store FCM token stub — we use simple Notification API which works when tab is open
+  // For true background push we'd need a service worker; this gives real OS notifications when tab is open
 }
 
 async function uploadImage(file){
   const placeholderKey=await push(ref(db,getMsgPath()),{name:myUsername,text:"📤 Uploading image…",timestamp:Date.now(),uploading:true}).then(r=>r.key);
-  const formData=new FormData();formData.append("image",file);
   try{
-    const res=await fetch("https://api.imgur.com/3/image",{method:"POST",headers:{Authorization:`Client-ID ${IMGUR_CLIENT_ID}`},body:formData});
+    const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+    const formData=new FormData();formData.append("image",base64);
+    const res=await fetch(`https://api.imgbb.com/1/upload?key=0fedaba33b0fca5eec75f16568047712`,{method:"POST",body:formData});
     const data=await res.json();
     await set(ref(db,`${getMsgPath()}/${placeholderKey}`),data.success
-      ?{name:myUsername,text:"",imageUrl:data.data.link,timestamp:Date.now()}
+      ?{name:myUsername,text:"",imageUrl:data.data.url,timestamp:Date.now()}
       :{name:myUsername,text:"❌ Upload failed.",timestamp:Date.now()});
-  }catch{await set(ref(db,`${getMsgPath()}/${placeholderKey}`),{name:myUsername,text:"❌ Upload failed.",timestamp:Date.now()});}
+  }catch(err){await set(ref(db,`${getMsgPath()}/${placeholderKey}`),{name:myUsername,text:"❌ Upload failed.",timestamp:Date.now()});}
 }
 
 // ---- EMOJI PICKER ----
@@ -1155,6 +1354,38 @@ window.startDm=async()=>{
   closeDmModal();openDm(newDm.key,members.filter(m=>m!==myUsername).join(", "));
 };
 
+
+// ---- AVATAR ----
+let _pendingColour=null;
+window.openAvatarModal=()=>{
+  const modal=document.getElementById("avatar-modal");
+  const preview=document.getElementById("avatar-preview");
+  preview.textContent=myUsername[0].toUpperCase();
+  preview.style.background=window._myColour||"#dc143c";
+  _pendingColour=window._myColour||"#dc143c";
+  const grid=document.getElementById("colour-grid");grid.innerHTML="";
+  AVATAR_COLOURS.forEach(c=>{
+    const sw=document.createElement("div");sw.className="colour-swatch"+(c===_pendingColour?" selected":"");
+    sw.style.background=c;
+    sw.addEventListener("click",()=>{
+      _pendingColour=c;preview.style.background=c;
+      grid.querySelectorAll(".colour-swatch").forEach(s=>s.classList.remove("selected"));
+      sw.classList.add("selected");
+    });
+    grid.appendChild(sw);
+  });
+  modal.classList.add("open");
+};
+window.saveAvatar=()=>{
+  if(_pendingColour){
+    set(ref(db,`users/${myUsername}/colour`),_pendingColour);
+    document.getElementById("user-avatar").style.background=_pendingColour;
+    window._myColour=_pendingColour;
+  }
+  document.getElementById("avatar-modal").classList.remove("open");
+};
+document.getElementById("avatar-modal").addEventListener("click",e=>{if(e.target===document.getElementById("avatar-modal"))document.getElementById("avatar-modal").classList.remove("open");});
+
 // ---- SOUND & NOTIF ----
 function initSound(){
   const ctx=new(window.AudioContext||window.webkitAudioContext)();
@@ -1166,7 +1397,17 @@ function showNotif(name,text,chatName){
   el.innerHTML=`<strong>${name} · ${chatName}</strong>${(text||"").length>60?text.slice(0,60)+"…":text}`;
   el.style.display="block";clearTimeout(notifTimeout);
   notifTimeout=setTimeout(()=>el.style.display="none",3500);
-  if(Notification.permission==="granted"&&!document.hasFocus())new Notification(`${name} · ${chatName}`,{body:text,silent:true});
+  // Real OS notification — fires even when tab is in background
+  if(Notification.permission==="granted"){
+    const n=new Notification(`${name} · ${chatName}`,{
+      body:(text||"📷 Image").slice(0,100),
+      icon:"https://ethaserm.github.io/JustUs/icon.png",
+      badge:"https://ethaserm.github.io/JustUs/icon.png",
+      tag:`justus-${chatName}`,
+      renotify:true
+    });
+    n.addEventListener("click",()=>{window.focus();n.close();});
+  }
 }
 
 // ---- CONTEXT MENU ----
