@@ -211,6 +211,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .offline-badge{width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0;}
 .g-btn{background:#dc143c;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;}
 .g-btn:hover{background:var(--accent-dark);}
+/* PLUS MENU */
+#plus-menu{position:fixed;bottom:62px;left:12px;background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:8px;display:none;flex-direction:column;gap:2px;width:200px;z-index:50;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+#plus-menu.open{display:flex;}
+.plus-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background 0.15s;font-size:13px;color:#f0f0f0;}
+.plus-item:hover{background:#1e1e1e;}
+.plus-item-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0;}
+#plus-btn{font-size:22px;font-weight:300;line-height:1;}
+
+/* POLLS */
+.poll-card{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:14px 16px;min-width:220px;max-width:280px;display:flex;flex-direction:column;gap:10px;}
+.poll-question{font-size:14px;font-weight:700;}
+.poll-option{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:9px 12px;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s;font-size:13px;}
+.poll-option:hover{border-color:#555;}
+.poll-option.voted{border-color:var(--accent);}
+.poll-bar{position:absolute;left:0;top:0;height:100%;background:var(--accent);opacity:0.15;transition:width 0.4s ease;border-radius:10px;}
+.poll-option-text{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;}
+.poll-pct{font-size:11px;color:#888;}
+.poll-total{font-size:11px;color:#555;text-align:right;}
+/* POLL CREATOR */
+#poll-modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:300;}
+#poll-modal.open{display:flex;}
+.poll-box{background:#111;border:1px solid #222;border-radius:16px;padding:24px;width:340px;display:flex;flex-direction:column;gap:12px;}
+.poll-box h3{font-size:15px;font-weight:700;}
+.poll-opt-list{display:flex;flex-direction:column;gap:6px;}
+.poll-opt-inp{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;color:#f0f0f0;font-size:14px;padding:9px 12px;outline:none;width:100%;}
+.poll-opt-inp:focus{border-color:var(--accent);}
+.add-opt-btn{background:none;border:1px dashed #2a2a2a;border-radius:8px;color:#666;font-size:13px;padding:8px;cursor:pointer;transition:border-color 0.15s;}
+.add-opt-btn:hover{border-color:#555;color:#f0f0f0;}
+
 .g-btn:disabled{background:#2a2a2a;color:#555;cursor:not-allowed;}
 /* THEMES */
 :root{
@@ -376,9 +405,30 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
     <p>Select people to chat with</p>
     <input class="dm-search" id="dm-search" placeholder="Search users..." oninput="filterUsers(this.value)" autocomplete="off"/>
     <div id="user-list"></div>
+    <div id="group-name-wrap" style="display:none;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.08em;">Group Name</div>
+      <input class="dm-search" id="group-name-input" placeholder="Enter a group name…" maxlength="30" autocomplete="off"/>
+    </div>
     <div class="dm-actions">
       <button class="dm-cancel" onclick="closeDmModal()">Cancel</button>
       <button class="dm-start" id="dm-start-btn" onclick="startDm()" disabled>Start Chat</button>
+    </div>
+  </div>
+</div>
+
+<!-- POLL MODAL -->
+<div id="poll-modal">
+  <div class="poll-box">
+    <h3>📊 Create Poll</h3>
+    <input class="poll-opt-inp" id="poll-question" placeholder="Ask a question…" maxlength="100" autocomplete="off"/>
+    <div class="poll-opt-list" id="poll-opt-list">
+      <input class="poll-opt-inp" placeholder="Option 1" maxlength="50" autocomplete="off"/>
+      <input class="poll-opt-inp" placeholder="Option 2" maxlength="50" autocomplete="off"/>
+    </div>
+    <button class="add-opt-btn" id="add-opt-btn">+ Add option</button>
+    <div style="display:flex;gap:8px;">
+      <button class="dm-cancel" onclick="document.getElementById('poll-modal').classList.remove('open')">Cancel</button>
+      <button class="g-btn" style="flex:2" onclick="submitPoll()">Create Poll</button>
     </div>
   </div>
 </div>
@@ -446,18 +496,20 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
     </div>
     <div id="messages" style="display:none"></div>
     <div id="typing-indicator" style="display:none"></div>
+    <div id="plus-menu">
+      <div class="plus-item" id="pm-emoji"><span class="plus-item-icon">😊</span>Emoji</div>
+      <div class="plus-item" id="pm-gif"><span class="plus-item-icon">GIF</span>GIF</div>
+      <div class="plus-item" id="pm-image"><span class="plus-item-icon">🖼️</span>Image</div>
+      <div class="plus-item" id="pm-poll"><span class="plus-item-icon">📊</span>Poll</div>
+      <div class="plus-item" id="pm-game"><span class="plus-item-icon">🎮</span>Games</div>
+    </div>
     <div id="emoji-picker"></div>
     <div id="game-picker">
       <h4>🎮 Games</h4>
     </div>
     <div id="input-bar" style="display:none">
-      <button class="ibar-btn" id="emoji-btn" title="Emoji">😊</button>
-      <button class="ibar-btn" id="img-btn" title="Send image">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      </button>
+      <button class="ibar-btn" id="plus-btn" title="More">+</button>
       <input type="file" id="img-input" accept="image/*" style="display:none"/>
-      <button class="ibar-btn" id="giphy-btn" title="GIFs">GIF</button>
-      <button class="ibar-btn" id="game-btn" title="Games">🎮</button>
       <textarea id="msg-input" placeholder="Message..." rows="1"></textarea>
       <button id="send-btn"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
     </div>
@@ -599,7 +651,7 @@ function renderDmList(){
   label.style.display=entries.length?"block":"none";
   entries.forEach(([id,dm])=>{
     const others=Object.keys(dm.members).filter(m=>m!==myUsername);
-    const name=others.length===1?others[0]:others.join(", ");
+    const name=dm.groupName||(others.length===1?others[0]:others.join(", "));
     const isOnline=others.some(m=>onlineUsers[m]);
     const el=document.createElement("div");el.className="room-item";el.id=`dm-${id}`;
     el.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:#2a2a2a;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">${name[0].toUpperCase()}</div><span class="room-name">${name}</span><span class="${isOnline?"online-badge":"offline-badge"}"></span>`;
@@ -667,6 +719,9 @@ function renderMsg(id,msg){
   if(msg.gameInvite){
     renderGameCard(id,msg,container);container.scrollTop=container.scrollHeight;return;
   }
+  if(msg.poll){
+    renderPollCard(id,msg,container);container.scrollTop=container.scrollHeight;return;
+  }
   const isMe=msg.name===myUsername;
   const wrapper=document.createElement("div");
   wrapper.className=`msg-wrapper ${isMe?"me":"them"}`;wrapper.dataset.id=id;
@@ -677,19 +732,22 @@ function renderMsg(id,msg){
   if(!msg.uploading&&!msg.gifUrl){
     const actions=document.createElement("div");actions.className="msg-actions";actions.style.cssText="position:absolute;top:-30px;"+(isMe?"right:0":"left:0")+";background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:2px;display:none;gap:2px;z-index:10;";
     // React button
+    const _reactPath=getMsgPath();
     const reactBtn=document.createElement("button");reactBtn.className="msg-action-btn";reactBtn.textContent="😊";reactBtn.title="React";
-    reactBtn.addEventListener("click",(e)=>{e.stopPropagation();showReactPicker(e,id);});
+    reactBtn.addEventListener("click",(e)=>{e.stopPropagation();showReactPicker(e,id,_reactPath);});
     actions.appendChild(reactBtn);
     if(isMe&&!msg.imageUrl&&!msg.gifUrl){
       // Edit
       const editBtn=document.createElement("button");editBtn.className="msg-action-btn";editBtn.textContent="✏️";editBtn.title="Edit";
-      editBtn.addEventListener("click",()=>startEdit(id,msg,wrapper));
+      const _editPath=getMsgPath();
+      editBtn.addEventListener("click",()=>startEdit(id,msg,wrapper,_editPath));
       actions.appendChild(editBtn);
     }
     if(isMe){
       // Delete
       const delBtn=document.createElement("button");delBtn.className="msg-action-btn";delBtn.textContent="🗑️";delBtn.title="Delete";
-      delBtn.addEventListener("click",()=>{if(confirm("Delete this message?"))remove(ref(db,`${getMsgPath()}/${id}`));});
+      const _delPath=getMsgPath();
+      delBtn.addEventListener("click",()=>{if(confirm("Delete this message?"))remove(ref(db,`${_delPath}/${id}`));});
       actions.appendChild(delBtn);
     }
     wrapper.appendChild(actions);
@@ -729,7 +787,7 @@ function renderMsg(id,msg){
     Object.entries(counts).forEach(([emoji,users])=>{
       const badge=document.createElement("div");badge.className="reaction-badge"+(users.includes(myUsername)?" mine":"");
       badge.textContent=`${emoji} ${users.length}`;badge.title=users.join(", ");
-      badge.addEventListener("click",()=>toggleReaction(id,emoji));
+      const _rp=getMsgPath();badge.addEventListener("click",()=>toggleReaction(id,emoji,_rp));
       reactRow.appendChild(badge);
     });
     wrapper.appendChild(reactRow);
@@ -742,18 +800,23 @@ function renderMsg(id,msg){
   if(!msg.uploading&&!msg.system&&!msg.gameInvite)checkDisappearing(id,msg,getMsgPath());
 }
 
-function startEdit(id,msg,wrapper){
+function startEdit(id,msg,wrapper,msgPath){
   const bubble=wrapper.querySelector(".bubble");if(!bubble)return;
   const inp=document.createElement("input");inp.className="edit-input";inp.value=msg.text;
   bubble.replaceWith(inp);inp.focus();
-  const save=()=>{const t=inp.value.trim();if(t&&t!==msg.text)set(ref(db,`${getMsgPath()}/${id}`),{...msg,text:t,edited:true});inp.replaceWith(bubble);};
-  inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();save();}if(e.key==="Escape")inp.replaceWith(bubble);});
-  inp.addEventListener("blur",save);
+  let saved=false;
+  const save=()=>{
+    if(saved)return;saved=true;
+    const t=inp.value.trim();
+    if(t&&t!==msg.text)set(ref(db,`${msgPath}/${id}`),{...msg,text:t,edited:true});
+    else inp.replaceWith(bubble);
+  };
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();save();}if(e.key==="Escape"){saved=true;inp.replaceWith(bubble);}});
+  inp.addEventListener("blur",()=>setTimeout(save,100));
 }
 
-function toggleReaction(msgId,emoji){
-  const path=`${getMsgPath()}/${msgId}/readBy`;
-  const reactPath=`${getMsgPath()}/${msgId}/reactions/${myUsername}`;
+function toggleReaction(msgId,emoji,msgPath){
+  const reactPath=`${msgPath}/${msgId}/reactions/${myUsername}`;
   get(ref(db,reactPath)).then(snap=>{
     if(snap.val()===emoji)remove(ref(db,reactPath));
     else set(ref(db,reactPath),emoji);
@@ -761,12 +824,12 @@ function toggleReaction(msgId,emoji){
 }
 
 let reactPickerEl=null;
-function showReactPicker(e,msgId){
+function showReactPicker(e,msgId,msgPath){
   if(reactPickerEl)reactPickerEl.remove();
   const picker=document.createElement("div");picker.className="react-picker";
   REACT_EMOJIS.forEach(em=>{
     const btn=document.createElement("button");btn.className="react-btn";btn.textContent=em;
-    btn.addEventListener("click",()=>{toggleReaction(msgId,em);picker.remove();reactPickerEl=null;});
+    btn.addEventListener("click",()=>{toggleReaction(msgId,em,msgPath);picker.remove();reactPickerEl=null;});
     picker.appendChild(btn);
   });
   document.body.appendChild(picker);
@@ -774,6 +837,58 @@ function showReactPicker(e,msgId){
   picker.style.top=`${rect.top-44}px`;picker.style.left=`${rect.left}px`;
   reactPickerEl=picker;
   setTimeout(()=>document.addEventListener("click",()=>{picker.remove();reactPickerEl=null;},{once:true}),10);
+}
+
+function renderPollCard(id,msg,container){
+  const isMe=msg.name===myUsername;
+  const wrapper=document.createElement("div");
+  wrapper.className=`msg-wrapper ${isMe?"me":"them"}`;wrapper.dataset.id=id;
+  if(!isMe)wrapper.innerHTML+=`<div class="sender-name" style="cursor:pointer" onclick="viewProfile('${msg.name}')">${msg.name}</div>`;
+  const poll=msg.poll;
+  const votes=poll.votes||{};
+  const totalVotes=Object.keys(votes).length;
+  const myVote=votes[myUsername];
+  const card=document.createElement("div");card.className="poll-card";
+  const q=document.createElement("div");q.className="poll-question";q.textContent="📊 "+poll.question;
+  card.appendChild(q);
+  poll.options.forEach((opt,i)=>{
+    const voteCount=Object.values(votes).filter(v=>v===i).length;
+    const pct=totalVotes?Math.round(voteCount/totalVotes*100):0;
+    const optEl=document.createElement("div");optEl.className="poll-option"+(myVote===i?" voted":"");
+    const bar=document.createElement("div");bar.className="poll-bar";bar.style.width=myVote!==undefined?`${pct}%`:"0%";
+    const text=document.createElement("div");text.className="poll-option-text";
+    text.innerHTML=`<span>${opt}</span><span class="poll-pct">${myVote!==undefined?pct+"%":""}</span>`;
+    optEl.appendChild(bar);optEl.appendChild(text);
+    if(myVote===undefined){
+      const _pollPath=getMsgPath();
+      optEl.addEventListener("click",()=>{
+        set(ref(db,`${_pollPath}/${id}/poll/votes/${myUsername}`),i);
+      });
+    }
+    card.appendChild(optEl);
+  });
+  const total=document.createElement("div");total.className="poll-total";
+  total.textContent=`${totalVotes} vote${totalVotes!==1?"s":""}`;
+  card.appendChild(total);
+  const ts=new Date(msg.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  const tsEl=document.createElement("div");tsEl.className="timestamp";tsEl.textContent=ts;
+  wrapper.appendChild(card);wrapper.appendChild(tsEl);container.appendChild(wrapper);
+  // Live update votes
+  onValue(ref(db,`${getMsgPath()}/${id}/poll/votes`),snap=>{
+    const newVotes=snap.val()||{};
+    const newTotal=Object.keys(newVotes).length;
+    total.textContent=`${newTotal} vote${newTotal!==1?"s":""}`;
+    poll.options.forEach((_,i)=>{
+      const vc=Object.values(newVotes).filter(v=>v===i).length;
+      const pc=newTotal?Math.round(vc/newTotal*100):0;
+      const optEl=card.querySelectorAll(".poll-option")[i];
+      if(optEl){
+        optEl.querySelector(".poll-bar").style.width=newVotes[myUsername]!==undefined?`${pc}%`:"0%";
+        optEl.querySelector(".poll-pct").textContent=newVotes[myUsername]!==undefined?pc+"%":"";
+        if(newVotes[myUsername]===i)optEl.classList.add("voted");
+      }
+    });
+  });
 }
 
 function renderGameCard(id,msg,container){
@@ -826,30 +941,16 @@ function setupInputHandlers(){
       }
     }
   });
-  // Image upload button
-  document.getElementById("img-btn").addEventListener("click",()=>{if(currentChatId)document.getElementById("img-input").click();});
+
   document.getElementById("img-input").addEventListener("change",async e=>{
     const file=e.target.files[0];e.target.value="";
     if(!file||!file.type.startsWith("image/"))return;
     if(file.size>10*1024*1024){alert("Max 10MB");return;}
     await uploadImage(file);
   });
-  // Game button
-  document.getElementById("game-btn").addEventListener("click",e=>{
-    e.stopPropagation();
-    document.getElementById("emoji-picker").classList.remove("open");
-    document.getElementById("game-picker").classList.toggle("open");
-  });
-  document.getElementById("emoji-btn").addEventListener("click",e=>{
-    e.stopPropagation();
-    document.getElementById("game-picker").classList.remove("open");
-    document.getElementById("emoji-picker").classList.toggle("open");
-  });
-  document.addEventListener("click",()=>{
-    document.getElementById("emoji-picker").classList.remove("open");
-    document.getElementById("game-picker").classList.remove("open");
-    document.getElementById("giphy-picker").classList.remove("open");
-  });
+
+
+
   document.getElementById("input-bar").addEventListener("dragover",e=>e.preventDefault());
   document.getElementById("input-bar").addEventListener("drop",e=>e.preventDefault());
 
@@ -862,22 +963,54 @@ function setupInputHandlers(){
     document.getElementById("sidebar-toggle").textContent=isHidden?"»":"☰";
   });
 
-  // Giphy button
-  document.getElementById("giphy-btn").addEventListener("click",e=>{
-    e.stopPropagation();
+  // + menu
+  const plusMenu=document.getElementById("plus-menu");
+  const closeAll=()=>{
+    plusMenu.classList.remove("open");
     document.getElementById("emoji-picker").classList.remove("open");
+    document.getElementById("giphy-picker").classList.remove("open");
     document.getElementById("game-picker").classList.remove("open");
-    const gp=document.getElementById("giphy-picker");
-    gp.classList.toggle("open");
-    if(gp.classList.contains("open")){
-      document.getElementById("giphy-search").focus();
-      loadGiphy("trending");
-    }
+  };
+  document.getElementById("plus-btn").addEventListener("click",e=>{
+    e.stopPropagation();
+    const isOpen=plusMenu.classList.contains("open");
+    closeAll();
+    if(!isOpen)plusMenu.classList.add("open");
   });
+  // Emoji
+  document.getElementById("pm-emoji").addEventListener("click",e=>{
+    e.stopPropagation();
+    closeAll();
+    document.getElementById("emoji-picker").classList.add("open");
+  });
+  // GIF
+  document.getElementById("pm-gif").addEventListener("click",e=>{
+    e.stopPropagation();closeAll();
+    if(!currentChatId)return;
+    document.getElementById("giphy-picker").classList.add("open");
+    document.getElementById("giphy-search").focus();
+    loadGiphy("trending");
+  });
+  // Image
+  document.getElementById("pm-image").addEventListener("click",()=>{
+    closeAll();if(currentChatId)document.getElementById("img-input").click();
+  });
+  // Poll
+  document.getElementById("pm-poll").addEventListener("click",()=>{
+    closeAll();if(!currentChatId)return;
+    document.getElementById("poll-modal").classList.add("open");
+  });
+  // Games
+  document.getElementById("pm-game").addEventListener("click",e=>{
+    e.stopPropagation();closeAll();
+    document.getElementById("game-picker").classList.add("open");
+  });
+
   document.getElementById("giphy-search").addEventListener("input",function(){
     clearTimeout(window._giphyTimer);
     window._giphyTimer=setTimeout(()=>loadGiphy(this.value||"trending"),400);
   });
+  document.addEventListener("click",()=>closeAll());
 
   // Real push notifications
   setupPushNotifications();
@@ -1435,7 +1568,15 @@ function renderBattleship(state,gameRef,body){
 }
 
 // ---- DM MODAL ----
-window.openDmModal=()=>{selectedDmUsers.clear();document.getElementById("dm-search").value="";renderUserList("");document.getElementById("dm-modal").classList.add("open");};
+window.openDmModal=()=>{
+  selectedDmUsers.clear();
+  document.getElementById("dm-search").value="";
+  document.getElementById("group-name-input").value="";
+  document.getElementById("group-name-wrap").style.display="none";
+  document.getElementById("dm-start-btn").disabled=true;
+  renderUserList("");
+  document.getElementById("dm-modal").classList.add("open");
+};
 window.closeDmModal=()=>document.getElementById("dm-modal").classList.remove("open");
 function renderUserList(filter){
   const list=document.getElementById("user-list");list.innerHTML="";
@@ -1457,17 +1598,57 @@ window.filterUsers=(val)=>renderUserList(val);
 window.startDm=async()=>{
   if(!selectedDmUsers.size)return;
   const members=[myUsername,...Array.from(selectedDmUsers)];
+  const isGroup=members.length>2;
+  const groupName=isGroup?(document.getElementById("group-name-input").value.trim()||members.filter(m=>m!==myUsername).join(", ")):"";
   const existingId=Object.entries(myDms).find(([id,dm])=>{
     return Object.keys(dm.members).sort().join(",")===members.slice().sort().join(",");
   })?.[0];
-  if(existingId){closeDmModal();openDm(existingId,members.filter(m=>m!==myUsername).join(", "));return;}
+  if(existingId){
+    closeDmModal();
+    const dm=myDms[existingId];
+    const name=dm.groupName||members.filter(m=>m!==myUsername).join(", ");
+    openDm(existingId,name);return;
+  }
   const dmRef=ref(db,"dms");
-  const newDm=await push(dmRef,{members:Object.fromEntries(members.map(m=>[m,true])),created:Date.now()});
-  closeDmModal();openDm(newDm.key,members.filter(m=>m!==myUsername).join(", "));
+  const newDm=await push(dmRef,{
+    members:Object.fromEntries(members.map(m=>[m,true])),
+    created:Date.now(),
+    ...(isGroup&&groupName?{groupName}:{})
+  });
+  closeDmModal();
+  openDm(newDm.key,isGroup&&groupName?groupName:members.filter(m=>m!==myUsername).join(", "));
 };
 
 
 
+
+
+// ---- POLLS ----
+
+document.getElementById("add-opt-btn").addEventListener("click",()=>{
+  const list=document.getElementById("poll-opt-list");
+  if(list.children.length>=6)return;
+  const inp=document.createElement("input");inp.className="poll-opt-inp";
+  inp.placeholder=`Option ${list.children.length+1}`;inp.maxLength=50;inp.autocomplete="off";
+  list.appendChild(inp);
+});
+document.getElementById("poll-modal").addEventListener("click",e=>{
+  if(e.target===document.getElementById("poll-modal"))document.getElementById("poll-modal").classList.remove("open");
+});
+window.submitPoll=()=>{
+  const question=document.getElementById("poll-question").value.trim();
+  if(!question)return;
+  const opts=Array.from(document.getElementById("poll-opt-list").children)
+    .map(i=>i.value.trim()).filter(v=>v);
+  if(opts.length<2){alert("Add at least 2 options.");return;}
+  push(ref(db,getMsgPath()),{
+    name:myUsername,poll:{question,options:opts,votes:{}},
+    text:`📊 ${question}`,timestamp:Date.now()
+  });
+  document.getElementById("poll-modal").classList.remove("open");
+  document.getElementById("poll-question").value="";
+  document.getElementById("poll-opt-list").innerHTML='<input class="poll-opt-inp" placeholder="Option 1" maxlength="50" autocomplete="off"/><input class="poll-opt-inp" placeholder="Option 2" maxlength="50" autocomplete="off"/>';
+};
 
 // ---- THEMES ----
 const THEMES=[
