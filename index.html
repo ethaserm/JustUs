@@ -187,6 +187,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #notif strong{color:#dc143c;display:block;font-size:11px;margin-bottom:2px;}
 /* DM MODAL */
 #dm-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:250;}
+#add-people-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:250;}
+#add-people-modal.open{display:flex;}
 #dm-modal.open{display:flex;}
 .dm-box{background:#111;border:1px solid #222;border-radius:16px;padding:24px;width:340px;display:flex;flex-direction:column;gap:14px;}
 .dm-box h3{font-size:16px;font-weight:700;}
@@ -433,6 +435,20 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
   </div>
 </div>
 
+<!-- ADD PEOPLE MODAL -->
+<div id="add-people-modal">
+  <div class="dm-box">
+    <h3>👥 Add People</h3>
+    <p>Select people to add to this chat</p>
+    <input class="dm-search" id="add-people-search" placeholder="Search users..." oninput="filterAddPeople(this.value)" autocomplete="off"/>
+    <div id="add-people-list"></div>
+    <div class="dm-actions">
+      <button class="dm-cancel" onclick="document.getElementById('add-people-modal').classList.remove('open')">Cancel</button>
+      <button class="dm-start" id="add-people-btn" onclick="confirmAddPeople()" disabled>Add</button>
+    </div>
+  </div>
+</div>
+
 <!-- THEME MODAL -->
 <div id="theme-modal">
   <div class="theme-box">
@@ -660,6 +676,7 @@ function renderDmList(){
     const dots=document.createElement("button");dots.className="room-dots";dots.textContent="···";dots.title="Options";
     dots.addEventListener("click",(e)=>{e.stopPropagation();showCtxMenu(e,id,"dm",name);});
     el.appendChild(dots);
+    if(localStorage.getItem(`justus-muted-${id}`)==="1"){const mb=document.createElement("span");mb.textContent="🔕";mb.style.cssText="font-size:11px;margin-left:2px;";el.appendChild(mb);}
     el.addEventListener("click",()=>openDm(id,name));list.appendChild(el);
   });
 }
@@ -697,7 +714,8 @@ function loadMessages(msgPath){
           renderMsg(id,msg);
           if(msg.name!==myUsername&&!msg.system&&!msg.uploading){
             const label=document.getElementById("header-name").textContent;
-            showNotif(msg.name,msg.text||"📷 Image",label);
+            const mutedKey=`justus-muted-${currentChatId}`;
+            if(localStorage.getItem(mutedKey)!=="1")showNotif(msg.name,msg.text||"📷 Image",label);
           }
         }
       });
@@ -1139,8 +1157,11 @@ function openGameModal(gameId,msgId,msgData){
   });
 }
 
-function initGameState(gameId,gameRef){
-  const base={player1:myUsername,player2:null,status:"waiting",turn:myUsername};
+function initGameState(gameId,gameRef,existingState){
+  // Preserve existing players if rematch, otherwise fresh game
+  const p1=existingState?.player1||myUsername;
+  const p2=existingState?.player2||null;
+  const base={player1:p1,player2:p2,status:p2?"playing":"waiting",turn:p1};
   if(gameId==="ttt")set(gameRef,{...base,board:Array(9).fill("")});
   else if(gameId==="c4")set(gameRef,{...base,board:Array(42).fill("")});
   else if(gameId==="rps")set(gameRef,{...base,p1choice:null,p2choice:null,round:1,p1score:0,p2score:0});
@@ -1214,7 +1235,7 @@ function renderTTT(state,gameRef,body){
   body.appendChild(board);
   if(state.status==="win"||state.status==="draw"){
     const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";
-    rb.addEventListener("click",()=>initGameState("ttt",gameRef));body.appendChild(rb);
+    rb.addEventListener("click",()=>initGameState("ttt",gameRef,state));body.appendChild(rb);
   }
 }
 function checkTTT(b,m){return[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(([a,c,d])=>b[a]===m&&b[c]===m&&b[d]===m);}
@@ -1252,7 +1273,7 @@ function renderC4(state,gameRef,body){
   wrap.appendChild(board);body.appendChild(wrap);
   if(state.status==="win"||state.status==="draw"){
     const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";
-    rb.addEventListener("click",()=>initGameState("c4",gameRef));body.appendChild(rb);
+    rb.addEventListener("click",()=>initGameState("c4",gameRef,state));body.appendChild(rb);
   }
 }
 function checkC4(b,m){
@@ -1299,7 +1320,7 @@ function renderRPS(state,gameRef,body){
     }
   }
   if(state.status==="done"){
-    if(role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";rb.addEventListener("click",()=>initGameState("rps",gameRef));body.appendChild(rb);}
+    if(role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";rb.addEventListener("click",()=>initGameState("rps",gameRef,state));body.appendChild(rb);}
     return;
   }
   if(!myChoice&&role&&state.status==="playing"){
@@ -1354,7 +1375,7 @@ function renderWordle(state,gameRef,body){
     row.appendChild(inp);row.appendChild(gbtn);body.appendChild(row);
   }
   if(state.solved||(guesses.length>=6&&!state.solved)){
-    if(role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="New Game";rb.addEventListener("click",()=>initGameState("wordle",gameRef));body.appendChild(rb);}
+    if(role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="New Game";rb.addEventListener("click",()=>initGameState("wordle",gameRef,state));body.appendChild(rb);}
   }
 }
 
@@ -1386,7 +1407,7 @@ function renderHangman(state,gameRef,body){
     });
     body.appendChild(keys);
   }
-  if((won||lost)&&role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="New Game";rb.addEventListener("click",()=>initGameState("hangman",gameRef));body.appendChild(rb);}
+  if((won||lost)&&role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="New Game";rb.addEventListener("click",()=>initGameState("hangman",gameRef,state));body.appendChild(rb);}
 }
 
 // Chess
@@ -1621,6 +1642,66 @@ window.startDm=async()=>{
 
 
 
+
+
+// ---- ADD PEOPLE ----
+let addPeopleChatId=null;
+let addPeopleSelected=new Set();
+let addPeopleCurrentMembers={};
+
+window.openAddPeopleModal=async(chatId)=>{
+  addPeopleChatId=chatId;
+  addPeopleSelected.clear();
+  document.getElementById("add-people-search").value="";
+  document.getElementById("add-people-btn").disabled=true;
+  // Get current members
+  const snap=await get(ref(db,`dms/${chatId}/members`));
+  addPeopleCurrentMembers=snap.val()||{};
+  renderAddPeopleList("");
+  document.getElementById("add-people-modal").classList.add("open");
+};
+
+window.filterAddPeople=(val)=>renderAddPeopleList(val);
+
+function renderAddPeopleList(filter){
+  const list=document.getElementById("add-people-list");list.innerHTML="";
+  const users=Object.keys(allUsers).filter(u=>
+    u!==myUsername&&
+    !addPeopleCurrentMembers[u]&&
+    u.includes(filter.toLowerCase())
+  );
+  if(!users.length){
+    list.innerHTML=`<div style="font-size:13px;color:#444;text-align:center;padding:16px">${Object.keys(allUsers).filter(u=>u!==myUsername&&!addPeopleCurrentMembers[u]).length===0?"Everyone is already in this chat":"No users found"}</div>`;
+    return;
+  }
+  users.forEach(u=>{
+    const isOnline=!!onlineUsers[u];
+    const el=document.createElement("div");el.className="user-select-item"+(addPeopleSelected.has(u)?" selected":"");
+    el.innerHTML=`<div class="user-sel-avatar">${u[0].toUpperCase()}</div><div class="user-sel-name">${u}</div><div class="${isOnline?"online-badge":"offline-badge"}" style="margin-right:6px"></div><div class="user-sel-check"></div>`;
+    el.addEventListener("click",()=>{
+      if(addPeopleSelected.has(u))addPeopleSelected.delete(u);
+      else addPeopleSelected.add(u);
+      renderAddPeopleList(document.getElementById("add-people-search").value);
+      document.getElementById("add-people-btn").disabled=addPeopleSelected.size===0;
+    });
+    list.appendChild(el);
+  });
+}
+
+window.confirmAddPeople=async()=>{
+  if(!addPeopleSelected.size||!addPeopleChatId)return;
+  const updates={};
+  addPeopleSelected.forEach(u=>{updates[`dms/${addPeopleChatId}/members/${u}`]=true;});
+  await Promise.all(Object.entries(updates).map(([path,val])=>set(ref(db,path),val)));
+  // Post a system message
+  const names=Array.from(addPeopleSelected).join(", ");
+  push(ref(db,`dms/${addPeopleChatId}/messages`),{system:true,text:`${myUsername} added ${names}`,timestamp:Date.now()});
+  document.getElementById("add-people-modal").classList.remove("open");
+};
+
+document.getElementById("add-people-modal").addEventListener("click",e=>{
+  if(e.target===document.getElementById("add-people-modal"))document.getElementById("add-people-modal").classList.remove("open");
+});
 
 // ---- POLLS ----
 
@@ -1990,6 +2071,52 @@ function showCtxMenu(e,id,type,name){
       }
     }
   });
+  // Add people
+  const d5=document.createElement("div");d5.className="ctx-item";d5.innerHTML='<span>👥</span> Add people';
+  d5.addEventListener("click",()=>{closeCtxMenu();openAddPeopleModal(id);});
+  menu.appendChild(d5);
+
+  // See members
+  const d6=document.createElement("div");d6.className="ctx-item";d6.innerHTML='<span>👁️</span> See members';
+  d6.addEventListener("click",async()=>{
+    closeCtxMenu();
+    const snap=await get(ref(db,`dms/${id}/members`));
+    const members=Object.keys(snap.val()||{});
+    alert(`Members (${members.length}):\n${members.join("\n")}`);
+  });
+  menu.appendChild(d6);
+
+  // Remove member (only show if group with 3+ members)
+  const dmSnap=myDms[id];
+  const memberCount=dmSnap?Object.keys(dmSnap.members||{}).length:0;
+  if(memberCount>2){
+    const d7=document.createElement("div");d7.className="ctx-item danger";d7.innerHTML='<span>🚫</span> Remove member';
+    d7.addEventListener("click",async()=>{
+      closeCtxMenu();
+      const snap=await get(ref(db,`dms/${id}/members`));
+      const members=Object.keys(snap.val()||{}).filter(m=>m!==myUsername);
+      if(!members.length)return;
+      const choice=prompt(`Who do you want to remove?\n${members.map((m,i)=>`${i+1}. ${m}`).join("\n")}\n\nEnter number:`);
+      const idx=parseInt(choice)-1;
+      if(idx>=0&&idx<members.length){
+        remove(ref(db,`dms/${id}/members/${members[idx]}`));
+        push(ref(db,`dms/${id}/messages`),{system:true,text:`${myUsername} removed ${members[idx]}`,timestamp:Date.now()});
+      }
+    });
+    menu.appendChild(d7);
+  }
+
+  // Mute
+  const mutedKey=`justus-muted-${id}`;
+  const isMuted=localStorage.getItem(mutedKey)==="1";
+  const d8=document.createElement("div");d8.className="ctx-item";d8.innerHTML=`<span>${isMuted?"🔔":"🔕"}</span> ${isMuted?"Unmute chat":"Mute chat"}`;
+  d8.addEventListener("click",()=>{
+    closeCtxMenu();
+    if(isMuted)localStorage.removeItem(mutedKey);
+    else localStorage.setItem(mutedKey,"1");
+  });
+  menu.appendChild(d8);
+
   // Rename chat
   const d4=document.createElement("div");d4.className="ctx-item";d4.innerHTML='<span>✏️</span> Rename chat';
   d4.addEventListener("click",()=>{
