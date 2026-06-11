@@ -586,9 +586,7 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getDatabase,ref,push,onValue,set,remove,onDisconnect,get}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import{getMessaging,getToken,onMessage}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
-// Init Firebase once at top level
 const _fbApp=initializeApp(FIREBASE_CONFIG);
 const db=getDatabase(_fbApp);
 
@@ -1130,27 +1128,13 @@ async function loadGiphy(query){
 }
 
 async function setupPushNotifications(){
-  if(!("serviceWorker" in navigator)||!("PushManager" in window))return;
   try{
-    const reg=await navigator.serviceWorker.register('/JustUs/firebase-messaging-sw.js');
     const perm=await Notification.requestPermission();
     if(perm!=="granted")return;
-    const messaging=getMessaging(_fbApp);
-    const token=await getToken(messaging,{
-      vapidKey:"BInpeV7H3a9FtFe64v9GLSd1rEiuh12ZefFKFwPpGOUhAU2gxJjKlhZ3jhYdj9Om8ZeQ-uJl84WlkwqGnDtLEMM",
-      serviceWorkerRegistration:reg
-    });
-    if(token&&myUsername){
-      set(ref(db,`fcmTokens/${myUsername}`),token);
+    if("serviceWorker" in navigator){
+      navigator.serviceWorker.register('/JustUs/firebase-messaging-sw.js').catch(()=>{});
     }
-    // Handle foreground messages
-    onMessage(messaging,payload=>{
-      const {title,body}=payload.notification||{};
-      showNotif(title||"JustUs",body||"New message","");
-    });
-  }catch(e){
-    console.warn("Push notifications not available:",e);
-  }
+  }catch(e){}
 }
 
 async function uploadImage(file){
