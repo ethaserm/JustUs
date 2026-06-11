@@ -212,6 +212,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .g-btn{background:#dc143c;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;}
 .g-btn:hover{background:#a50e2d;}
 .g-btn:disabled{background:#2a2a2a;color:#555;cursor:not-allowed;}
+/* PROFILE MODAL */
+#profile-modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:350;}
+#profile-modal.open{display:flex;}
+.profile-box{background:#111;border:1px solid #222;border-radius:18px;width:340px;overflow:hidden;display:flex;flex-direction:column;}
+.profile-banner{height:80px;background:linear-gradient(135deg,#dc143c,#6c0020);flex-shrink:0;}
+.profile-body{padding:0 20px 20px;display:flex;flex-direction:column;gap:12px;}
+.profile-avatar-wrap{margin-top:-28px;display:flex;align-items:flex-end;justify-content:space-between;}
+.profile-avatar-big{width:56px;height:56px;border-radius:50%;border:3px solid #111;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;position:relative;}
+.profile-status-dot{position:absolute;bottom:2px;right:2px;width:12px;height:12px;border-radius:50%;border:2px solid #111;}
+.status-online{background:#22c55e;}
+.status-busy{background:#f59e0b;}
+.status-dnd{background:#dc143c;}
+.status-invisible{background:#555;}
+.profile-edit-btn{background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;transition:background 0.15s;}
+.profile-edit-btn:hover{background:#252525;}
+.profile-display-name{font-size:17px;font-weight:700;}
+.profile-username{font-size:13px;color:#666;}
+.profile-status-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#888;}
+.profile-section-label{font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.07em;}
+.profile-bio{font-size:13px;color:#aaa;line-height:1.5;white-space:pre-wrap;}
+.profile-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.profile-stat{background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:10px;text-align:center;}
+.profile-stat-val{font-size:18px;font-weight:700;color:#f0f0f0;}
+.profile-stat-label{font-size:11px;color:#555;margin-top:2px;}
+.profile-join{font-size:12px;color:#555;}
+/* PROFILE EDIT */
+.profile-input{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;color:#f0f0f0;font-size:14px;padding:9px 12px;outline:none;width:100%;font-family:inherit;}
+.profile-input:focus{border-color:#dc143c;}
+.profile-textarea{resize:vertical;min-height:70px;}
+.status-picker{display:flex;gap:8px;flex-wrap:wrap;}
+.status-opt{display:flex;align-items:center;gap:6px;padding:6px 12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;cursor:pointer;font-size:13px;transition:border-color 0.15s;}
+.status-opt:hover{border-color:#555;}
+.status-opt.selected{border-color:#dc143c;background:#1e0508;}
+.status-dot-sm{width:9px;height:9px;border-radius:50%;}
+
 /* SIDEBAR TOGGLE */
 #sidebar{transition:width 0.25s ease,min-width 0.25s ease;}
 #sidebar.collapsed{width:0;min-width:0;overflow:hidden;}
@@ -299,6 +334,11 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
       <button class="dm-start" id="dm-start-btn" onclick="startDm()" disabled>Start Chat</button>
     </div>
   </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div id="profile-modal">
+  <div class="profile-box" id="profile-box"></div>
 </div>
 
 <!-- GAME MODAL -->
@@ -436,12 +476,15 @@ function startApp(){
     window._myColour=colour;
   });
   // Make avatar clickable to open picker
-  document.getElementById("user-avatar").style.cursor="cursor";
-  document.getElementById("user-avatar").addEventListener("click",openAvatarModal);
+  document.getElementById("user-avatar").style.cursor="pointer";
+  document.getElementById("user-avatar").addEventListener("click",openProfileModal);
   initSound();
   if(Notification.permission==="default")Notification.requestPermission();
   const myOnlineRef=ref(db,`online/${myUsername}`);
-  set(myOnlineRef,{name:myUsername,ts:Date.now()});
+  get(ref(db,`users/${myUsername}/status`)).then(snap=>{
+    const status=snap.val()||"online";
+    set(myOnlineRef,{name:myUsername,status,ts:Date.now()});
+  });
   onDisconnect(myOnlineRef).remove();
   onValue(ref(db,"online"),snap=>{onlineUsers=snap.val()||{};renderOnlineList();});
   onValue(ref(db,"users"),snap=>{allUsers=snap.val()||{};});
@@ -466,7 +509,8 @@ function renderOnlineList(){
   document.getElementById("online-count-label").textContent=users.length;
   users.forEach(u=>{
     const el=document.createElement("div");el.className="online-item";
-    el.innerHTML=`<div class="online-dot"></div><div style="flex:1">${u.name}</div>${u.name===myUsername?'<span class="online-you">you</span>':''}`;
+    const sCls=u.status==="busy"?"status-busy":u.status==="dnd"?"status-dnd":u.status==="invisible"?"status-invisible":"status-online";
+    el.innerHTML=`<div class="online-dot ${sCls}" style="background:none;width:8px;height:8px;border-radius:50%;flex-shrink:0"></div><div style="flex:1">${u.name}</div>${u.name===myUsername?'<span class="online-you">you</span>':''}`;
     list.appendChild(el);
   });
 }
@@ -949,10 +993,10 @@ function renderTTT(state,gameRef,body){
   const role=myRole(state);
   const mark=role==="p1"?"X":role==="p2"?"O":null;
   const statusEl=document.createElement("div");statusEl.className="game-status";
-  if(state.status==="waiting")statusEl.textContent="Waiting for opponent to join…";
+  if(state.status==="waiting"||!state.player2)statusEl.textContent="Waiting for opponent to join…";
   else if(state.status==="win")statusEl.textContent=`🎉 ${state.winner} wins!`;
   else if(state.status==="draw")statusEl.textContent="It's a draw!";
-  else statusEl.textContent=isMyTurn(state)?`Your turn (${mark})`:`${state.turn}'s turn`;
+  else statusEl.textContent=isMyTurn(state)?`Your turn (${mark})`:`${otherPlayer(state)}'s turn`;
   body.appendChild(statusEl);
   const board=document.createElement("div");board.className="ttt-board";
   (state.board||Array(9).fill("")).forEach((cell,i)=>{
@@ -981,10 +1025,10 @@ function renderC4(state,gameRef,body){
   const role=myRole(state);
   const myColor=role==="p1"?"r":role==="p2"?"y":null;
   const statusEl=document.createElement("div");statusEl.className="game-status";
-  if(state.status==="waiting")statusEl.textContent="Waiting for opponent to join…";
+  if(state.status==="waiting"||!state.player2)statusEl.textContent="Waiting for opponent to join…";
   else if(state.status==="win")statusEl.textContent=`🎉 ${state.winner} wins!`;
   else if(state.status==="draw")statusEl.textContent="Draw!";
-  else statusEl.textContent=isMyTurn(state)?"Your turn":`${state.turn}'s turn`;
+  else statusEl.textContent=isMyTurn(state)?"Your turn":`${otherPlayer(state)}'s turn`;
   body.appendChild(statusEl);
   const wrap=document.createElement("div");wrap.style.overflowX="auto";
   const colBtns=document.createElement("div");colBtns.className="c4-col-btns";
@@ -1162,9 +1206,9 @@ function renderChess(state,gameRef,body){
   const myTurnColor=myColor==="w"?"white":"black";
   const canMove=myColor&&turn===myTurnColor&&state.status==="playing";
   const statusEl=document.createElement("div");statusEl.className="game-status";
-  if(state.status==="waiting")statusEl.textContent="Waiting for opponent…";
+  if(state.status==="waiting"||!state.player2)statusEl.textContent="Waiting for opponent…";
   else if(state.status==="checkmate")statusEl.textContent=`Checkmate! ${state.winner} wins!`;
-  else statusEl.textContent=canMove?"Your turn":`${turn}'s turn`;
+  else statusEl.textContent=canMove?"Your turn":`${otherPlayer(state)}'s turn`;
   body.appendChild(statusEl);
   const boardEl=document.createElement("div");boardEl.className="chess-board";
   const board=state.board||initChessBoard();
@@ -1283,7 +1327,7 @@ function renderBattleship(state,gameRef,body){
   }
   if(state.status==="waiting"||!state.p2ships){statusEl.textContent="Waiting for opponent to place ships…";body.appendChild(statusEl);return;}
   if(state.status==="win")statusEl.textContent=`🎉 ${state.winner} wins!`;
-  else statusEl.textContent=isMyTurn(state)?"Your turn to shoot":`${state.turn}'s turn`;
+  else statusEl.textContent=isMyTurn(state)?"Your turn to shoot":`${otherPlayer(state)}'s turn`;
   body.appendChild(statusEl);
   const myShips=role==="p1"?state.p1ships:state.p2ships||[];
   const oppShips=role==="p1"?state.p2ships||[]:state.p1ships;
@@ -1356,6 +1400,140 @@ window.startDm=async()=>{
   closeDmModal();openDm(newDm.key,members.filter(m=>m!==myUsername).join(", "));
 };
 
+
+
+// ---- PROFILE ----
+const STATUS_OPTIONS=[
+  {key:"online",label:"Online",cls:"status-online"},
+  {key:"busy",label:"Busy",cls:"status-busy"},
+  {key:"dnd",label:"Do Not Disturb",cls:"status-dnd"},
+  {key:"invisible",label:"Invisible",cls:"status-invisible"}
+];
+
+function getStatusCls(s){return STATUS_OPTIONS.find(o=>o.key===s)?.cls||"status-online";}
+function getStatusLabel(s){return STATUS_OPTIONS.find(o=>o.key===s)?.label||"Online";}
+
+async function openProfileModal(){
+  const snap=await get(ref(db,`users/${myUsername}`));
+  const data=snap.val()||{};
+  renderProfileView(data,false);
+  document.getElementById("profile-modal").classList.add("open");
+}
+
+function renderProfileView(data,editing){
+  const box=document.getElementById("profile-box");box.innerHTML="";
+  const colour=data.colour||window._myColour||"#dc143c";
+  const status=data.status||"online";
+  const displayName=data.displayName||myUsername;
+  const bio=data.bio||"";
+  const joined=data.joined?new Date(data.joined).toLocaleDateString(undefined,{year:"numeric",month:"long"}):"Unknown";
+  const wins=data.wins||0;const losses=data.losses||0;const played=wins+losses;
+
+  // Banner
+  const banner=document.createElement("div");banner.className="profile-banner";
+  banner.style.background=`linear-gradient(135deg,${colour},${colour}88)`;
+  box.appendChild(banner);
+
+  const body=document.createElement("div");body.className="profile-body";
+
+  // Avatar + edit btn
+  const avatarWrap=document.createElement("div");avatarWrap.className="profile-avatar-wrap";
+  const avatar=document.createElement("div");avatar.className="profile-avatar-big";
+  avatar.style.background=colour;avatar.textContent=displayName[0].toUpperCase();
+  const dot=document.createElement("div");dot.className=`profile-status-dot ${getStatusCls(status)}`;
+  avatar.appendChild(dot);
+  avatar.addEventListener("click",openAvatarModal);
+  avatarWrap.appendChild(avatar);
+  const editBtn=document.createElement("button");editBtn.className="profile-edit-btn";
+  editBtn.textContent=editing?"Cancel":"Edit Profile";
+  editBtn.addEventListener("click",()=>{
+    if(editing)renderProfileView(data,false);
+    else renderProfileEdit(data);
+  });
+  avatarWrap.appendChild(editBtn);
+  body.appendChild(avatarWrap);
+
+  // Name
+  const nameEl=document.createElement("div");nameEl.className="profile-display-name";nameEl.textContent=displayName;
+  body.appendChild(nameEl);
+  const userEl=document.createElement("div");userEl.className="profile-username";userEl.textContent=`@${myUsername}`;
+  body.appendChild(userEl);
+
+  // Status
+  const statusRow=document.createElement("div");statusRow.className="profile-status-row";
+  const sdot=document.createElement("div");sdot.className=`status-dot-sm ${getStatusCls(status)}`;
+  statusRow.appendChild(sdot);statusRow.appendChild(document.createTextNode(getStatusLabel(status)));
+  body.appendChild(statusRow);
+
+  // Bio
+  if(bio){
+    const bl=document.createElement("div");bl.className="profile-section-label";bl.textContent="About Me";body.appendChild(bl);
+    const bioEl=document.createElement("div");bioEl.className="profile-bio";bioEl.textContent=bio;body.appendChild(bioEl);
+  }
+
+  // Stats
+  const sl=document.createElement("div");sl.className="profile-section-label";sl.textContent="Game Stats";body.appendChild(sl);
+  const stats=document.createElement("div");stats.className="profile-stats";
+  [{val:played,label:"Played"},{val:wins,label:"Wins"},{val:losses,label:"Losses"}].forEach(({val,label})=>{
+    const s=document.createElement("div");s.className="profile-stat";
+    s.innerHTML=`<div class="profile-stat-val">${val}</div><div class="profile-stat-label">${label}</div>`;
+    stats.appendChild(s);
+  });
+  body.appendChild(stats);
+
+  // Join date
+  const joinEl=document.createElement("div");joinEl.className="profile-join";joinEl.textContent=`Joined ${joined}`;body.appendChild(joinEl);
+
+  box.appendChild(body);
+
+  // Close on backdrop
+  document.getElementById("profile-modal").onclick=(e)=>{if(e.target===document.getElementById("profile-modal"))document.getElementById("profile-modal").classList.remove("open");};
+}
+
+function renderProfileEdit(data){
+  const box=document.getElementById("profile-box");box.innerHTML="";
+  const colour=data.colour||window._myColour||"#dc143c";
+  const banner=document.createElement("div");banner.className="profile-banner";
+  banner.style.background=`linear-gradient(135deg,${colour},${colour}88)`;
+  box.appendChild(banner);
+  const body=document.createElement("div");body.className="profile-body";
+
+  // Display name
+  const dnl=document.createElement("div");dnl.className="profile-section-label";dnl.textContent="Display Name";body.appendChild(dnl);
+  const dnInp=document.createElement("input");dnInp.className="profile-input";dnInp.value=data.displayName||myUsername;dnInp.maxLength=30;
+  body.appendChild(dnInp);
+
+  // Bio
+  const bl=document.createElement("div");bl.className="profile-section-label";bl.textContent="Bio";body.appendChild(bl);
+  const bioInp=document.createElement("textarea");bioInp.className="profile-input profile-textarea";bioInp.value=data.bio||"";bioInp.maxLength=150;bioInp.placeholder="Tell people about yourself…";
+  body.appendChild(bioInp);
+
+  // Status
+  const sl=document.createElement("div");sl.className="profile-section-label";sl.textContent="Status";body.appendChild(sl);
+  const statusPicker=document.createElement("div");statusPicker.className="status-picker";
+  let selectedStatus=data.status||"online";
+  STATUS_OPTIONS.forEach(opt=>{
+    const el=document.createElement("div");el.className="status-opt"+(opt.key===selectedStatus?" selected":"");
+    const dot=document.createElement("div");dot.className=`status-dot-sm ${opt.cls}`;
+    el.appendChild(dot);el.appendChild(document.createTextNode(opt.label));
+    el.addEventListener("click",()=>{selectedStatus=opt.key;statusPicker.querySelectorAll(".status-opt").forEach(e=>e.classList.remove("selected"));el.classList.add("selected");});
+    statusPicker.appendChild(el);
+  });
+  body.appendChild(statusPicker);
+
+  // Save
+  const saveBtn=document.createElement("button");saveBtn.className="g-btn";saveBtn.textContent="Save Profile";
+  saveBtn.addEventListener("click",async()=>{
+    const updates={...data,displayName:dnInp.value.trim()||myUsername,bio:bioInp.value.trim(),status:selectedStatus};
+    await set(ref(db,`users/${myUsername}`),updates);
+    // Update online status
+    set(ref(db,`online/${myUsername}`),{name:myUsername,status:selectedStatus,ts:Date.now()});
+    window._myColour=data.colour||"#dc143c";
+    renderProfileView(updates,false);
+  });
+  body.appendChild(saveBtn);
+  box.appendChild(body);
+}
 
 // ---- AVATAR ----
 let _pendingColour=null;
