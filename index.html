@@ -584,12 +584,12 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
 </div>
 
 <script type="module">
-import{initializeApp,getApps,getApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getDatabase,ref,push,onValue,set,remove,onDisconnect,get}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import{getMessaging,getToken,onMessage}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
 // Init Firebase once at top level
-const _fbApp=getApps().length?getApp():initializeApp(FIREBASE_CONFIG);
+const _fbApp=initializeApp(FIREBASE_CONFIG);
 const db=getDatabase(_fbApp);
 
 let myUsername,currentChatId=null,currentChatType=null;
