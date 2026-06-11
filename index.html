@@ -405,9 +405,9 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
     <p>Select people to chat with</p>
     <input class="dm-search" id="dm-search" placeholder="Search users..." oninput="filterUsers(this.value)" autocomplete="off"/>
     <div id="user-list"></div>
-    <div id="group-name-wrap" style="display:none;flex-direction:column;gap:6px;">
-      <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.08em;">Group Name</div>
-      <input class="dm-search" id="group-name-input" placeholder="Enter a group name…" maxlength="30" autocomplete="off"/>
+    <div id="group-name-wrap" style="display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.08em;">Chat Name <span style="color:#555;font-weight:400;text-transform:none">(optional)</span></div>
+      <input class="dm-search" id="group-name-input" placeholder="Give this chat a name…" maxlength="30" autocomplete="off"/>
     </div>
     <div class="dm-actions">
       <button class="dm-cancel" onclick="closeDmModal()">Cancel</button>
@@ -1572,7 +1572,6 @@ window.openDmModal=()=>{
   selectedDmUsers.clear();
   document.getElementById("dm-search").value="";
   document.getElementById("group-name-input").value="";
-  document.getElementById("group-name-wrap").style.display="none";
   document.getElementById("dm-start-btn").disabled=true;
   renderUserList("");
   document.getElementById("dm-modal").classList.add("open");
@@ -1599,7 +1598,7 @@ window.startDm=async()=>{
   if(!selectedDmUsers.size)return;
   const members=[myUsername,...Array.from(selectedDmUsers)];
   const isGroup=members.length>2;
-  const groupName=isGroup?(document.getElementById("group-name-input").value.trim()||members.filter(m=>m!==myUsername).join(", ")):"";
+  const groupName=document.getElementById("group-name-input").value.trim();
   const existingId=Object.entries(myDms).find(([id,dm])=>{
     return Object.keys(dm.members).sort().join(",")===members.slice().sort().join(",");
   })?.[0];
@@ -1613,10 +1612,10 @@ window.startDm=async()=>{
   const newDm=await push(dmRef,{
     members:Object.fromEntries(members.map(m=>[m,true])),
     created:Date.now(),
-    ...(isGroup&&groupName?{groupName}:{})
+    ...(groupName?{groupName}:{})
   });
   closeDmModal();
-  openDm(newDm.key,isGroup&&groupName?groupName:members.filter(m=>m!==myUsername).join(", "));
+  openDm(newDm.key,groupName||members.filter(m=>m!==myUsername).join(", "));
 };
 
 
@@ -1991,6 +1990,17 @@ function showCtxMenu(e,id,type,name){
       }
     }
   });
+  // Rename chat
+  const d4=document.createElement("div");d4.className="ctx-item";d4.innerHTML='<span>✏️</span> Rename chat';
+  d4.addEventListener("click",()=>{
+    closeCtxMenu();
+    const newName=prompt("Rename this chat:",name);
+    if(newName&&newName.trim()){
+      set(ref(db,`dms/${id}/groupName`),newName.trim());
+    }
+  });
+  menu.appendChild(d4);
+
   // Disappearing messages
   const d3=document.createElement("div");d3.className="ctx-item";d3.innerHTML='<span>⏳</span> Disappearing messages';
   d3.addEventListener("click",()=>{
