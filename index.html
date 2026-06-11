@@ -1229,7 +1229,10 @@ function openGameModal(gameId,msgId,msgData){
         Promise.all([
           set(ref(db,`games/${msgId}/player2`),myUsername),
           set(ref(db,`games/${msgId}/status`),"playing")
-        ]).then(()=>renderGameUI(gameId,gameRef,body));
+        ]).then(()=>{
+          activeGameMsgId=msgId;
+          renderGameUI(gameId,gameRef,body);
+        });
       } else {
         renderGameUI(gameId,gameRef,body);
       }
@@ -1281,15 +1284,15 @@ function renderGameUI(gameId,gameRef,body){
     else if(gameId==="snake")renderSnake(state,gameRef,body);
     else if(gameId==="battleship")renderBattleship(state,gameRef,body);
   });
-  initGameChat(gameRef);
+  initGameChat(activeGameMsgId);
 }
 
-function initGameChat(gameRef){
+function initGameChat(msgId){
   gameChatMsgs=[];
   const msgsEl=document.getElementById("game-chat-msgs");msgsEl.innerHTML="";
   const inp=document.getElementById("game-chat-inp");
   const sendBtn=document.getElementById("game-chat-send");
-  const chatPath=`games/${activeGameMsgId}/chat`;
+  const chatPath=`games/${msgId}/chat`;
   const doSend=()=>{
     const curInp=document.getElementById("game-chat-inp");
     const text=curInp.value.trim();if(!text)return;
@@ -1297,21 +1300,16 @@ function initGameChat(gameRef){
     curInp.value="";
     curInp.focus();
   };
-  // Remove old listeners by replacing elements
   const newInp=inp.cloneNode(true);const newBtn=sendBtn.cloneNode(true);
   inp.parentNode.replaceChild(newInp,inp);
   sendBtn.parentNode.replaceChild(newBtn,sendBtn);
   newInp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();doSend();}});
   newBtn.addEventListener("click",doSend);
-  // Listen for chat messages from Firebase (temp, auto-deleted after 1hr)
   if(gameChatUnsub){gameChatUnsub();gameChatUnsub=null;}
-  const chatRef=ref(db,`games/${activeGameMsgId}/chat`);
-  gameChatUnsub=onValue(chatRef,snap=>{
+  gameChatUnsub=onValue(ref(db,chatPath),snap=>{
     const val=snap.val()||{};
     const msgsEl2=document.getElementById("game-chat-msgs");if(!msgsEl2)return;
-    // Only add new messages
-    const keys=Object.keys(val);
-    const newKeys=keys.filter(k=>!gameChatMsgs.includes(k));
+    const newKeys=Object.keys(val).filter(k=>!gameChatMsgs.includes(k));
     newKeys.forEach(k=>{
       gameChatMsgs.push(k);
       const msg=val[k];
@@ -1320,8 +1318,7 @@ function initGameChat(gameRef){
       el.innerHTML=`<span class="gchat-name">${msg.name}</span>${msg.text.replace(/</g,"&lt;")}`;
       msgsEl2.appendChild(el);
       msgsEl2.scrollTop=msgsEl2.scrollHeight;
-      // Auto delete after 1 hour
-      setTimeout(()=>remove(ref(db,`games/${activeGameMsgId}/chat/${k}`)),3600000);
+      setTimeout(()=>remove(ref(db,`${chatPath}/${k}`)),3600000);
     });
   });
 }
@@ -1547,76 +1544,74 @@ function initChessBoard(){
 let chessSelected=null;
 let chessBoardEl=null;
 
-// Chess state refs — kept outside render so they persist across Firebase updates
+// Chess — use a closure so state is always fresh
 let chessGameRef=null;
 let chessStateCache=null;
-let chessCanMove=false;
-let chessMyColor=null;
+let chessBoardEl=null;
 
 function renderChess(state,gameRef,body){
-  const role=myRole(state);
-  chessMyColor=role==="p1"?"w":role==="p2"?"b":null;
-  const turn=state.turn||"white";
-  chessCanMove=chessMyColor&&turn===(chessMyColor==="w"?"white":"black")&&state.status==="playing";
+  // Always update the cache and ref
   chessGameRef=gameRef;
   chessStateCache=state;
+
+  const role=myRole(state);
+  const myColor=role==="p1"?"w":role==="p2"?"b":null;
+  const turn=state.turn||"white";
   const board=state.board||initChessBoard();
 
-  // Status — update in place
+  // Status
   let statusEl=document.getElementById("chess-status");
   if(!statusEl){
-    statusEl=document.createElement("div");statusEl.id="chess-status";statusEl.className="game-status";
+    statusEl=document.createElement("div");
+    statusEl.id="chess-status";statusEl.className="game-status";
     body.appendChild(statusEl);
   }
   if(state.status==="waiting"||!state.player2)statusEl.textContent="Waiting for opponent…";
   else if(state.status==="checkmate")statusEl.textContent=`Checkmate! ${state.winner} wins!`;
-  else statusEl.textContent=chessCanMove?"Your turn":`${otherPlayer(state)}'s turn`;
+  else{
+    const canMove=myColor&&((myColor==="w"&&turn==="white")||(myColor==="b"&&turn==="black"))&&state.status==="playing";
+    statusEl.textContent=canMove?"Your turn":`${otherPlayer(state)}'s turn`;
+  }
 
-  // Board — create once, never recreate
-  let boardEl=document.getElementById("chess-board-el");
-  if(!boardEl){
-    boardEl=document.createElement("div");boardEl.id="chess-board-el";
-    boardEl.style.cssText="display:grid;grid-template-columns:repeat(8,40px);grid-template-rows:repeat(8,40px);border:2px solid #555;border-radius:4px;overflow:hidden;margin:0 auto;";
+  // Build board once
+  if(!chessBoardEl||!document.body.contains(chessBoardEl)){
+    chessBoardEl=document.createElement("div");
+    chessBoardEl.id="chess-board-el";
+    chessBoardEl.style.cssText="display:grid;grid-template-columns:repeat(8,40px);grid-template-rows:repeat(8,40px);border:2px solid #555;border-radius:4px;overflow:hidden;margin:0 auto;";
     for(let i=0;i<64;i++){
       const sq=document.createElement("div");
-      sq.style.cssText="width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;user-select:none;";
-      sq.dataset.idx=i;
-      boardEl.appendChild(sq);
+      sq.style.cssText="width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;user-select:none;";
+      sq.dataset.idx=String(i);
+      chessBoardEl.appendChild(sq);
     }
-    boardEl.addEventListener("click",handleChessClick);
-    body.appendChild(boardEl);
+    chessBoardEl.addEventListener("click",e=>{
+      const sq=e.target.closest("[data-idx]");if(!sq)return;
+      const idx=parseInt(sq.dataset.idx);
+      if(!chessStateCache||!chessGameRef)return;
+      const s=chessStateCache;
+      const r=myRole(s);
+      const mc=r==="p1"?"w":r==="p2"?"b":null;
+      if(!mc)return;
+      const t=s.turn||"white";
+      const canMove=(mc==="w"&&t==="white")||(mc==="b"&&t==="black");
+      if(!canMove||s.status!=="playing")return;
+      const b=s.board||initChessBoard();
+      const possible=chessSelected!==null?getChessMoves(b,chessSelected):[];
+      if(chessSelected===null){
+        if(b[idx]&&b[idx][0]===mc){chessSelected=idx;updateChessBoard(b,idx,getChessMoves(b,idx));}
+      } else if(possible.includes(idx)){
+        const nb=[...b];nb[idx]=nb[chessSelected];nb[chessSelected]=null;
+        const prevSel=chessSelected;chessSelected=null;
+        set(chessGameRef,{...s,board:nb,turn:t==="white"?"black":"white",status:"playing"});
+      } else if(b[idx]&&b[idx][0]===mc){
+        chessSelected=idx;updateChessBoard(b,idx,getChessMoves(b,idx));
+      } else {
+        chessSelected=null;updateChessBoard(b,null,[]);
+      }
+    });
+    body.appendChild(chessBoardEl);
   }
   updateChessBoard(board,chessSelected,chessSelected!==null?getChessMoves(board,chessSelected):[]);
-}
-
-function handleChessClick(e){
-  const sq=e.target.closest("[data-idx]");if(!sq)return;
-  const idx=parseInt(sq.dataset.idx);
-  if(!chessStateCache)return;
-  // Recalculate canMove fresh each click
-  const role=myRole(chessStateCache);
-  const mc=role==="p1"?"w":role==="p2"?"b":null;
-  const turn=chessStateCache.turn||"white";
-  const canMove=mc&&turn===(mc==="w"?"white":"black")&&chessStateCache.status==="playing";
-  if(!canMove)return;
-  const board=chessStateCache.board||initChessBoard();
-  const possible=chessSelected!==null?getChessMoves(board,chessSelected):[];
-  if(chessSelected===null){
-    if(board[idx]&&board[idx][0]===mc){
-      chessSelected=idx;
-      updateChessBoard(board,idx,getChessMoves(board,idx));
-    }
-  } else if(possible.includes(idx)){
-    const nb=[...board];nb[idx]=nb[chessSelected];nb[chessSelected]=null;
-    chessSelected=null;
-    set(chessGameRef,{...chessStateCache,board:nb,turn:turn==="white"?"black":"white",status:"playing"});
-  } else if(board[idx]&&board[idx][0]===mc){
-    chessSelected=idx;
-    updateChessBoard(board,idx,getChessMoves(board,idx));
-  } else {
-    chessSelected=null;
-    updateChessBoard(board,null,[]);
-  }
 }
 
 function updateChessBoard(board,selected,possible){
@@ -1627,13 +1622,23 @@ function updateChessBoard(board,selected,possible){
     const isLight=(row+col)%2===0;
     let bg=isLight?"#f0d9b5":"#b58863";
     if(selected===idx)bg="#f6f669";
-    else if(possible&&possible.includes(idx))bg=isLight?"rgba(0,150,0,0.45)":"rgba(0,150,0,0.45)";
     sq.style.background=bg;
     const piece=board[idx];
-    sq.textContent=piece?(CHESS_PIECES[piece]||""):"";
-    sq.style.color=piece&&piece[0]==="w"?"#fff":"#1a1a1a";
-    sq.style.textShadow=piece?(piece[0]==="w"?"0 1px 3px #000,0 0 3px #000":"0 1px 3px #ccc,0 0 3px #fff"):"none";
-    sq.style.fontSize="26px";
+    const isPossible=possible&&possible.includes(idx);
+    if(piece){
+      sq.textContent=CHESS_PIECES[piece]||"";
+      sq.style.color=piece[0]==="w"?"#fff":"#1a1a1a";
+      sq.style.textShadow=piece[0]==="w"?"0 1px 3px #000,0 0 3px #000":"0 1px 3px #ccc,0 0 3px #fff";
+      sq.style.fontSize="26px";
+    } else if(isPossible){
+      sq.textContent="•";
+      sq.style.color="rgba(0,0,0,0.35)";
+      sq.style.textShadow="none";
+      sq.style.fontSize="28px";
+    } else {
+      sq.textContent="";
+      sq.style.textShadow="none";
+    }
   });
 }
 
