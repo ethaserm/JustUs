@@ -94,7 +94,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .e-btn{font-size:20px;background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;transition:background 0.1s;}
 .e-btn:hover{background:#2a2a2a;}
 /* GAME PICKER */
-#game-picker{position:fixed;bottom:62px;left:248px;background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:12px;display:none;flex-direction:column;gap:4px;width:230px;z-index:50;}
+#game-picker{position:fixed;bottom:62px;left:248px;background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:8px;display:none;flex-direction:column;gap:2px;width:220px;z-index:50;max-height:400px;overflow-y:auto;}
 #game-picker.open{display:flex;}
 #game-picker h4{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.06em;padding:0 4px 6px;border-bottom:1px solid #222;margin-bottom:2px;}
 .game-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s;}
@@ -404,7 +404,23 @@ body{background:var(--bg);color:var(--text);}
 const FIREBASE_CONFIG={apiKey:"AIzaSyD_lb5_UyY2K2DQ3AOCopHcs1p4Kp_21vY",authDomain:"justus-d8e38.firebaseapp.com",databaseURL:"https://justus-d8e38-default-rtdb.firebaseio.com",projectId:"justus-d8e38",storageBucket:"justus-d8e38.firebasestorage.app",messagingSenderId:"422645809706",appId:"1:422645809706:web:d7c26471bd3f0b0e08b953"};
 const ROOMS=[{id:"general",name:"General",icon:"💬"},{id:"gaming",name:"Gaming",icon:"🎮"},{id:"random",name:"Random",icon:"🎲"},{id:"music",name:"Music",icon:"🎵"},{id:"movies",name:"Movies",icon:"🎬"},{id:"announcements",name:"Announcements",icon:"📢",adminOnly:"ethan"}];
 const EMOJIS=["😀","😂","😍","🥹","😎","🤔","😭","🔥","💀","👀","🙏","👏","💯","🎉","❤️","🫡","✅","😤","💤","🤝","😏","🥶","🤯","👋","⚡"];
-const GAMES=[{id:"ttt",name:"Tic Tac Toe",icon:"⭕",desc:"2 players • Classic"},{id:"c4",name:"Connect 4",icon:"🔴",desc:"2 players • Drop discs"},{id:"rps",name:"Rock Paper Scissors",icon:"✊",desc:"2 players • Best of 3"},{id:"wordle",name:"Wordle",icon:"🟩",desc:"1-2 players • Guess word"},{id:"hangman",name:"Hangman",icon:"🪢",desc:"2 players • Guess letters"},{id:"chess",name:"Chess",icon:"♟️",desc:"2 players • Full game"},{id:"snake",name:"Snake",icon:"🐍",desc:"1 player • High score"},{id:"battleship",name:"Battleship",icon:"🚢",desc:"2 players • Sink ships"}];
+const GAMES=[
+  {id:"ttt",name:"Tic Tac Toe",icon:"⭕",desc:"Classic",players:"2"},
+  {id:"c4",name:"Connect 4",icon:"🔴",desc:"Drop discs",players:"2"},
+  {id:"rps",name:"Rock Paper Scissors",icon:"✊",desc:"Best of 3",players:"2"},
+  {id:"wordle",name:"Wordle",icon:"🟩",desc:"Guess the word",players:"2"},
+  {id:"hangman",name:"Hangman",icon:"🪢",desc:"Guess letters",players:"2"},
+  {id:"chess",name:"Chess",icon:"♟️",desc:"Full game",players:"2"},
+  {id:"battleship",name:"Battleship",icon:"🚢",desc:"Sink ships",players:"2"},
+  {id:"snake",name:"Snake",icon:"🐍",desc:"High score",players:"1"},
+  {id:"trivia",name:"Trivia Quiz",icon:"🧠",desc:"Race to answer",players:"3+"},
+  {id:"wordassoc",name:"Word Association",icon:"💬",desc:"Keep the chain going",players:"3+"},
+  {id:"drawing",name:"Drawing Game",icon:"🎨",desc:"Draw & guess",players:"3+"},
+  {id:"mafia",name:"Mafia",icon:"🕵️",desc:"Find the mafia",players:"3+"},
+  {id:"bingo",name:"Bingo",icon:"🎱",desc:"Host calls numbers",players:"3+"},
+  {id:"uno",name:"Uno",icon:"🃏",desc:"Classic card game",players:"3+"},
+  {id:"twentyq",name:"20 Questions",icon:"❓",desc:"Guess what I'm thinking",players:"3+"},
+];
 const IMGBB_KEY="0fedaba33b0fca5eec75f16568047712";
 const GIPHY_KEY="cW2vztoxX3cu13EWLHOYApriZDPeQsAe";
 const AVATAR_COLOURS=["#dc143c","#6c63ff","#22c55e","#f59e0b","#3b82f6","#ec4899","#14b8a6","#f97316","#8b5cf6","#06b6d4","#84cc16","#ef4444"];
@@ -990,7 +1006,7 @@ function renderGameCard(id,msg,container){
   const game=GAMES.find(g=>g.id===msg.gameInvite);
   const card=document.createElement("div");card.className="game-card";
   card.innerHTML=`<div class="game-card-header"><span class="game-card-icon">${game.icon}</span><div><div class="game-card-title">${game.name}</div><div class="game-card-sub">${game.desc}</div></div></div><div class="game-card-host">Started by ${msg.name}</div>`;
-  const soloGames=["snake"];
+  const soloGames=["snake","trivia","wordassoc","drawing","mafia","bingo","uno","twentyq"];
   const isSolo=soloGames.includes(game.id);
   const btn=document.createElement("button");btn.className="join-btn";
   if(isSolo){btn.textContent="Play";btn.disabled=false;}
@@ -1163,18 +1179,24 @@ function buildEmojiPicker(){
 // ---- GAME PICKER ----
 function buildGamePicker(){
   const picker=document.getElementById("game-picker");
-  GAMES.forEach(g=>{
-    const el=document.createElement("div");el.className="game-item";
-    el.innerHTML=`<span class="game-icon">${g.icon}</span><div><div class="game-name">${g.name}</div><div class="game-desc">${g.desc}</div></div>`;
-    el.addEventListener("click",()=>{
-      if(!currentChatId)return;
-      picker.classList.remove("open");
-      push(ref(db,getMsgPath()),{name:myUsername,gameInvite:g.id,text:`${myUsername} wants to play ${g.name}!`,timestamp:Date.now()}).then(r=>{
-        // Host auto-opens the game
-        openGameModal(g.id,r.key,{name:myUsername,gameInvite:g.id,timestamp:Date.now()});
+  const cats=[{label:"1 Player",key:"1"},{label:"2 Players",key:"2"},{label:"3+ Players",key:"3+"}];
+  cats.forEach(cat=>{
+    const games=GAMES.filter(g=>g.players===cat.key);
+    if(!games.length)return;
+    const sec=document.createElement("div");sec.style.cssText="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.07em;padding:6px 10px 2px;";
+    sec.textContent=cat.label;picker.appendChild(sec);
+    games.forEach(g=>{
+      const el=document.createElement("div");el.className="game-item";
+      el.innerHTML=`<span class="game-icon">${g.icon}</span><div><div class="game-name">${g.name}</div><div class="game-desc">${g.desc}</div></div>`;
+      el.addEventListener("click",()=>{
+        if(!currentChatId)return;
+        picker.classList.remove("open");
+        push(ref(db,getMsgPath()),{name:myUsername,gameInvite:g.id,text:`${myUsername} wants to play ${g.name}!`,timestamp:Date.now()}).then(r=>{
+          openGameModal(g.id,r.key,{name:myUsername,gameInvite:g.id,timestamp:Date.now()});
+        });
       });
+      picker.appendChild(el);
     });
-    picker.appendChild(el);
   });
 }
 
@@ -1246,6 +1268,9 @@ function initGameState(gameId,gameRef,existingState){
   else if(gameId==="battleship"){
     set(gameRef,{player1:myUsername,player2:null,status:"waiting",p1ships:generateBattleshipBoard(),p2ships:null,p1shots:[],p2shots:[],turn:myUsername,phase:"setup"});
   }
+  else if(["trivia","wordassoc","drawing","mafia","bingo","uno","twentyq"].includes(gameId)){
+    set(gameRef,{player1:myUsername,status:"waiting",players:{[myUsername]:true}});
+  }
 }
 
 // ---- GAME UIs ----
@@ -1268,6 +1293,13 @@ function renderGameUI(gameId,gameRef,body){
     else if(gameId==="chess")renderChess(state,gameRef,body);
     else if(gameId==="snake")renderSnake(state,gameRef,body);
     else if(gameId==="battleship")renderBattleship(state,gameRef,body);
+    else if(gameId==="trivia")renderTrivia(state,gameRef,body);
+    else if(gameId==="wordassoc")renderWordAssoc(state,gameRef,body);
+    else if(gameId==="drawing")renderDrawing(state,gameRef,body);
+    else if(gameId==="mafia")renderMafia(state,gameRef,body);
+    else if(gameId==="bingo")renderBingo(state,gameRef,body);
+    else if(gameId==="uno")renderUno(state,gameRef,body);
+    else if(gameId==="twentyq")renderTwentyQ(state,gameRef,body);
   });
   initGameChat(activeGameMsgId);
 }
@@ -1538,8 +1570,9 @@ function renderChess(state,gameRef,body){
   chessGameRef=gameRef;
   chessStateCache=state;
 
-  const role=myRole(state);
-  const myColor=role==="p1"?"w":role==="p2"?"b":null;
+  let myColor=null;
+  if(state.player1===myUsername)myColor="w";
+  else if(state.player2===myUsername)myColor="b";
   const turn=state.turn||"white";
   const board=state.board||initChessBoard();
 
@@ -1573,8 +1606,9 @@ function renderChess(state,gameRef,body){
       const idx=parseInt(sq.dataset.idx);
       if(!chessStateCache||!chessGameRef)return;
       const s=chessStateCache;
-      const r=myRole(s);
-      const mc=r==="p1"?"w":r==="p2"?"b":null;
+      let mc=null;
+      if(s.player1===myUsername)mc="w";
+      else if(s.player2===myUsername)mc="b";
       if(!mc)return;
       const t=s.turn||"white";
       const canMove=(mc==="w"&&t==="white")||(mc==="b"&&t==="black");
@@ -1758,6 +1792,576 @@ function renderBattleship(state,gameRef,body){
     oppGrid.appendChild(c);
   }
   oppWrap.appendChild(oppGrid);wrap.appendChild(oppWrap);body.appendChild(wrap);
+}
+
+
+// ---- TRIVIA ----
+function renderTrivia(state,gameRef,body){
+  const isHost=state.player1===myUsername;
+  const players=state.players||{};
+  const q=state.currentQ;
+  const scores=state.scores||{};
+
+  if(state.status==="waiting"){
+    const s=document.createElement("div");s.className="game-status";
+    s.textContent=`Waiting for players… ${Object.keys(players).length} joined`;body.appendChild(s);
+    if(!players[myUsername])set(ref(db,`games/${activeGameMsgId}/players/${myUsername}`),true);
+    if(isHost&&Object.keys(players).length>=2){
+      const btn=document.createElement("button");btn.className="g-btn";btn.textContent="Start Game";
+      btn.addEventListener("click",()=>nextTriviaQ(gameRef,state));body.appendChild(btn);
+    }
+    return;
+  }
+  if(!players[myUsername]&&state.status==="playing"){
+    set(ref(db,`games/${activeGameMsgId}/players/${myUsername}`),true);
+  }
+
+  // Scores
+  const scoreDiv=document.createElement("div");scoreDiv.style.cssText="display:flex;gap:8px;flex-wrap:wrap;";
+  Object.entries(scores).forEach(([p,s])=>{
+    const el=document.createElement("div");el.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:4px 10px;font-size:12px;";
+    el.textContent=`${p}: ${s}`;scoreDiv.appendChild(el);
+  });
+  body.appendChild(scoreDiv);
+
+  if(state.status==="done"){
+    const winner=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
+    const w=document.createElement("div");w.className="game-turn";w.textContent=`🏆 ${winner?winner[0]:"Nobody"} wins!`;body.appendChild(w);
+    if(isHost){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";rb.addEventListener("click",()=>set(gameRef,{player1:myUsername,status:"waiting",players:{[myUsername]:true},scores:{},qIndex:0}));body.appendChild(rb);}
+    return;
+  }
+
+  if(!q){const s=document.createElement("div");s.className="game-status";s.textContent="Loading question…";body.appendChild(s);return;}
+
+  const qEl=document.createElement("div");qEl.style.cssText="font-size:15px;font-weight:600;text-align:center;padding:4px 0;";qEl.textContent=q.question;body.appendChild(qEl);
+
+  const myAnswer=state.answers&&state.answers[myUsername];
+  const allAnswered=Object.keys(players).every(p=>state.answers&&state.answers[p]!==undefined);
+
+  if(allAnswered){
+    const correct=q.correct;
+    const res=document.createElement("div");res.className="game-turn";
+    res.textContent=`Answer: ${q.options[correct]}`;body.appendChild(res);
+    const winners=Object.entries(state.answers||{}).filter(([,a])=>a===correct).map(([p])=>p);
+    const wr=document.createElement("div");wr.className="game-status";wr.textContent=winners.length?`✅ ${winners.join(", ")} got it!`:"❌ Nobody got it!";body.appendChild(wr);
+    if(isHost){
+      const nb=document.createElement("button");nb.className="g-btn";
+      const qi=(state.qIndex||0)+1;
+      nb.textContent=qi>=10?"Finish":"Next Question";
+      nb.addEventListener("click",()=>{
+        if(qi>=10){set(gameRef,{...state,status:"done"});}
+        else nextTriviaQ(gameRef,state);
+      });body.appendChild(nb);
+    }
+  } else if(!myAnswer){
+    const opts=document.createElement("div");opts.style.cssText="display:flex;flex-direction:column;gap:6px;";
+    q.options.forEach((opt,i)=>{
+      const btn=document.createElement("button");btn.className="g-btn";btn.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;";
+      btn.textContent=opt;
+      btn.addEventListener("click",()=>{
+        set(ref(db,`games/${activeGameMsgId}/answers/${myUsername}`),i);
+        const ns={...scores,[myUsername]:(scores[myUsername]||0)+(i===q.correct?1:0)};
+        set(ref(db,`games/${activeGameMsgId}/scores`),ns);
+      });
+      opts.appendChild(btn);
+    });
+    body.appendChild(opts);
+  } else {
+    const w=document.createElement("div");w.className="game-status";w.textContent="Waiting for others…";body.appendChild(w);
+  }
+}
+
+const TRIVIA_QS=[
+  {question:"What is the capital of France?",options:["London","Paris","Berlin","Madrid"],correct:1},
+  {question:"How many sides does a hexagon have?",options:["5","6","7","8"],correct:1},
+  {question:"What planet is known as the Red Planet?",options:["Venus","Jupiter","Mars","Saturn"],correct:2},
+  {question:"Who wrote Romeo and Juliet?",options:["Dickens","Shakespeare","Austen","Hemingway"],correct:1},
+  {question:"What is 12 × 12?",options:["132","144","124","148"],correct:1},
+  {question:"What is the largest ocean?",options:["Atlantic","Indian","Arctic","Pacific"],correct:3},
+  {question:"How many bones are in the human body?",options:["196","206","216","226"],correct:1},
+  {question:"What year did WW2 end?",options:["1943","1944","1945","1946"],correct:2},
+  {question:"What is the chemical symbol for gold?",options:["Go","Gd","Au","Ag"],correct:2},
+  {question:"Which country invented pizza?",options:["France","Greece","Italy","Spain"],correct:2},
+];
+
+function nextTriviaQ(gameRef,state){
+  const qi=(state.qIndex||0);
+  const q=TRIVIA_QS[qi%TRIVIA_QS.length];
+  set(gameRef,{...state,status:"playing",currentQ:q,qIndex:qi+1,answers:{},players:state.players||{}});
+}
+
+// ---- WORD ASSOCIATION ----
+function renderWordAssoc(state,gameRef,body){
+  const players=state.players||{};
+  if(!players[myUsername])set(ref(db,`games/${activeGameMsgId}/players/${myUsername}`),true);
+  const isHost=state.player1===myUsername;
+  const chain=state.chain||[];
+  const lastWord=chain.length?chain[chain.length-1]:"(Start with any word)";
+  const turnPlayer=state.turn||state.player1;
+  const isMyTurn=turnPlayer===myUsername;
+  const allPlayers=Object.keys({...players,[myUsername]:true});
+
+  const status=document.createElement("div");status.className="game-status";
+  if(state.status==="waiting"){status.textContent=`Waiting… ${Object.keys(players).length} joined`;}
+  else if(state.status==="done"){status.textContent=`💀 ${state.loser} broke the chain!`;}
+  else status.textContent=isMyTurn?"Your turn!":turnPlayer+"'s turn";
+  body.appendChild(status);
+
+  if(chain.length){
+    const chainDiv=document.createElement("div");chainDiv.style.cssText="display:flex;flex-wrap:wrap;gap:4px;max-height:100px;overflow-y:auto;";
+    chain.forEach(w=>{const el=document.createElement("span");el.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:3px 8px;font-size:12px;";el.textContent=w;chainDiv.appendChild(el);});
+    body.appendChild(chainDiv);
+  }
+
+  const lastEl=document.createElement("div");lastEl.className="game-turn";lastEl.textContent=`Last: ${lastWord}`;body.appendChild(lastEl);
+
+  if(state.status==="waiting"&&isHost&&Object.keys(players).length>=2){
+    const btn=document.createElement("button");btn.className="g-btn";btn.textContent="Start";
+    btn.addEventListener("click",()=>{
+      const turnOrder=Object.keys(players);
+      set(gameRef,{...state,status:"playing",turn:turnOrder[0],turnOrder,chain:[],usedWords:[]});
+    });body.appendChild(btn);
+  }
+
+  if(isMyTurn&&state.status==="playing"){
+    const row=document.createElement("div");row.style.cssText="display:flex;gap:6px;";
+    const inp=document.createElement("input");inp.className="wordle-input";inp.placeholder="Type a word…";inp.autocomplete="off";
+    const btn=document.createElement("button");btn.className="g-btn";btn.style.cssText="width:auto;padding:8px 14px;margin:0;";btn.textContent="Send";
+    const doWord=()=>{
+      const w=inp.value.trim().toLowerCase();if(!w)return;
+      const used=state.usedWords||[];
+      const last=chain.length?chain[chain.length-1]:"";
+      if(last&&w[0]!==last[last.length-1]){alert(`Must start with "${last[last.length-1].toUpperCase()}"`);return;}
+      if(used.includes(w)){alert("Word already used!");return;}
+      const nc=[...chain,w];const nu=[...used,w];
+      const turnOrder=state.turnOrder||Object.keys(players);
+      const ci=turnOrder.indexOf(myUsername);
+      const nextTurn=turnOrder[(ci+1)%turnOrder.length];
+      set(gameRef,{...state,chain:nc,usedWords:nu,turn:nextTurn});
+      inp.value="";
+    };
+    inp.addEventListener("keydown",e=>{if(e.key==="Enter")doWord();});
+    btn.addEventListener("click",doWord);
+    row.appendChild(inp);row.appendChild(btn);body.appendChild(row);
+  }
+
+  if(state.status==="done"){
+    if(isHost){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";rb.addEventListener("click",()=>set(gameRef,{player1:myUsername,status:"waiting",players:{[myUsername]:true}}));body.appendChild(rb);}
+  }
+}
+
+// ---- DRAWING GAME ----
+const DRAW_PROMPTS=["cat","house","banana","rocket","elephant","guitar","pizza","rainbow","castle","robot","dragon","umbrella","submarine","volcano","astronaut"];
+function renderDrawing(state,gameRef,body){
+  const players=state.players||{};
+  if(!players[myUsername])set(ref(db,`games/${activeGameMsgId}/players/${myUsername}`),true);
+  const isDrawer=state.drawer===myUsername;
+  const isHost=state.player1===myUsername;
+
+  const status=document.createElement("div");status.className="game-status";
+  if(state.status==="waiting"){status.textContent=`Waiting… ${Object.keys(players).length} joined`;}
+  else if(state.status==="done"){status.textContent=`🎉 ${state.guesser||"Someone"} guessed it!`;}
+  else if(isDrawer)status.textContent=`Draw: "${state.word}"`;
+  else status.textContent=`${state.drawer} is drawing…`;
+  body.appendChild(status);
+
+  if(state.status==="waiting"&&isHost&&Object.keys(players).length>=2){
+    const btn=document.createElement("button");btn.className="g-btn";btn.textContent="Start";
+    btn.addEventListener("click",()=>{
+      const allP=Object.keys({...players,[myUsername]:true});
+      const drawer=allP[Math.floor(Math.random()*allP.length)];
+      const word=DRAW_PROMPTS[Math.floor(Math.random()*DRAW_PROMPTS.length)];
+      set(gameRef,{...state,status:"playing",drawer,word,strokes:[],guesses:{}});
+    });body.appendChild(btn);
+    return;
+  }
+
+  // Canvas
+  const canvas=document.createElement("canvas");canvas.width=260;canvas.height=200;
+  canvas.style.cssText="border:1px solid #2a2a2a;border-radius:8px;display:block;margin:0 auto;background:#fff;cursor:"+(isDrawer?"crosshair":"default");
+  body.appendChild(canvas);
+  const ctx=canvas.getContext("2d");
+  ctx.strokeStyle="#000";ctx.lineWidth=3;ctx.lineCap="round";
+
+  // Draw existing strokes
+  const drawStrokes=(strokes)=>{
+    ctx.clearRect(0,0,260,200);
+    (strokes||[]).forEach(stroke=>{
+      if(!stroke.pts||stroke.pts.length<2)return;
+      ctx.beginPath();ctx.strokeStyle=stroke.color||"#000";ctx.lineWidth=stroke.size||3;
+      ctx.moveTo(stroke.pts[0][0],stroke.pts[0][1]);
+      stroke.pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));
+      ctx.stroke();
+    });
+  };
+  drawStrokes(state.strokes);
+
+  // Live draw listener
+  onValue(ref(db,`games/${activeGameMsgId}/strokes`),snap=>{
+    drawStrokes(snap.val()||[]);
+  });
+
+  if(isDrawer){
+    let drawing=false;let pts=[];let color="#000";let size=3;
+    const tools=document.createElement("div");tools.style.cssText="display:flex;gap:6px;align-items:center;flex-wrap:wrap;";
+    ["#000","#dc143c","#3b82f6","#22c55e","#f59e0b","#fff"].forEach(c=>{
+      const sw=document.createElement("div");sw.style.cssText=`width:22px;height:22px;border-radius:50%;background:${c};border:2px solid #555;cursor:pointer;`;
+      sw.addEventListener("click",()=>{color=c;sw.style.borderColor="#f0f0f0";tools.querySelectorAll("div").forEach(d=>{if(d!==sw)d.style.borderColor="#555";});});
+      tools.appendChild(sw);
+    });
+    const clearBtn=document.createElement("button");clearBtn.className="g-btn";clearBtn.style.cssText="width:auto;padding:4px 10px;font-size:12px;margin:0;";clearBtn.textContent="Clear";
+    clearBtn.addEventListener("click",()=>set(ref(db,`games/${activeGameMsgId}/strokes`),[]) );
+    tools.appendChild(clearBtn);body.appendChild(tools);
+
+    canvas.addEventListener("mousedown",e=>{drawing=true;pts=[[e.offsetX,e.offsetY]];});
+    canvas.addEventListener("mousemove",e=>{if(!drawing)return;pts.push([e.offsetX,e.offsetY]);ctx.clearRect(0,0,260,200);drawStrokes(state.strokes);ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=size;ctx.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.stroke();});
+    canvas.addEventListener("mouseup",()=>{if(!drawing)return;drawing=false;const ns=[...(state.strokes||[]),{pts,color,size}];set(ref(db,`games/${activeGameMsgId}/strokes`),ns);pts=[];});
+  }
+
+  if(!isDrawer&&state.status==="playing"&&!state.guesses?.[myUsername]){
+    const row=document.createElement("div");row.style.cssText="display:flex;gap:6px;";
+    const inp=document.createElement("input");inp.className="wordle-input";inp.placeholder="Guess the drawing…";inp.autocomplete="off";
+    const btn=document.createElement("button");btn.className="g-btn";btn.style.cssText="width:auto;padding:8px 14px;margin:0;";btn.textContent="Guess";
+    const doGuess=()=>{
+      const g=inp.value.trim().toLowerCase();if(!g)return;
+      if(g===state.word?.toLowerCase()){
+        set(gameRef,{...state,status:"done",guesser:myUsername});
+      } else {
+        set(ref(db,`games/${activeGameMsgId}/guesses/${myUsername}`),g);
+        inp.value="";
+      }
+    };
+    inp.addEventListener("keydown",e=>{if(e.key==="Enter")doGuess();});
+    btn.addEventListener("click",doGuess);
+    row.appendChild(inp);row.appendChild(btn);body.appendChild(row);
+  }
+
+  if(state.status==="done"){
+    const ans=document.createElement("div");ans.className="game-turn";ans.textContent=`Word was: ${state.word}`;body.appendChild(ans);
+    if(isHost){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="New Round";rb.addEventListener("click",()=>{
+      const allP=Object.keys(players);const drawer=allP[Math.floor(Math.random()*allP.length)];
+      const word=DRAW_PROMPTS[Math.floor(Math.random()*DRAW_PROMPTS.length)];
+      set(gameRef,{...state,status:"playing",drawer,word,strokes:[],guesses:{},guesser:null});
+    });body.appendChild(rb);}
+  }
+}
+
+// ---- MAFIA ----
+const MAFIA_ROLES=["Mafia","Mafia","Villager","Villager","Villager","Detective","Doctor"];
+function renderMafia(state,gameRef,body){
+  const players=state.players||{};
+  if(!players[myUsername])set(ref(db,`games/${activeGameMsgId}/players/${myUsername}`),true);
+  const isHost=state.player1===myUsername;
+  const allP=Object.keys({...players,[myUsername]:true});
+  const myRole=state.roles?.[myUsername];
+
+  const status=document.createElement("div");status.className="game-status";body.appendChild(status);
+
+  if(state.status==="waiting"){
+    status.textContent=`Waiting… ${allP.length} joined (need 4+)`;
+    if(isHost&&allP.length>=4){
+      const btn=document.createElement("button");btn.className="g-btn";btn.textContent="Assign Roles & Start";
+      btn.addEventListener("click",()=>{
+        const shuffled=[...allP].sort(()=>Math.random()-0.5);
+        const roles={};shuffled.forEach((p,i)=>roles[p]=MAFIA_ROLES[i]||"Villager");
+        set(gameRef,{...state,status:"day",roles,alive:Object.fromEntries(allP.map(p=>[p,true])),phase:"discussion",votes:{}});
+      });body.appendChild(btn);
+    }
+    return;
+  }
+
+  if(myRole){const r=document.createElement("div");r.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;font-size:13px;text-align:center;";r.innerHTML=`Your role: <strong style="color:${myRole==="Mafia"?"#dc143c":myRole==="Detective"?"#3b82f6":"#22c55e"}">${myRole}</strong>`;body.appendChild(r);}
+
+  const alive=state.alive||{};
+  const aliveList=Object.keys(alive).filter(p=>alive[p]);
+  const alivediv=document.createElement("div");alivediv.style.cssText="display:flex;flex-wrap:wrap;gap:4px;";
+  aliveList.forEach(p=>{const el=document.createElement("span");el.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:3px 8px;font-size:12px;";el.textContent=p;alivediv.appendChild(el);});
+  body.appendChild(alivediv);
+
+  if(state.status==="day"){
+    status.textContent="☀️ Day — vote to eliminate";
+    const votes=state.votes||{};
+    if(!votes[myUsername]&&alive[myUsername]){
+      const vdiv=document.createElement("div");vdiv.style.cssText="display:flex;flex-direction:column;gap:4px;";
+      aliveList.filter(p=>p!==myUsername).forEach(p=>{
+        const btn=document.createElement("button");btn.className="g-btn";btn.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;";
+        btn.textContent=`Vote ${p}`;
+        btn.addEventListener("click",()=>set(ref(db,`games/${activeGameMsgId}/votes/${myUsername}`),p));
+        vdiv.appendChild(btn);
+      });body.appendChild(vdiv);
+    }
+    const allVoted=aliveList.every(p=>votes[p]);
+    if(allVoted&&isHost){
+      const tally={};Object.values(votes).forEach(v=>tally[v]=(tally[v]||0)+1);
+      const elim=Object.entries(tally).sort((a,b)=>b[1]-a[1])[0][0];
+      const newAlive={...alive,[elim]:false};
+      const mafiaLeft=Object.keys(newAlive).filter(p=>newAlive[p]&&state.roles[p]==="Mafia").length;
+      const villLeft=Object.keys(newAlive).filter(p=>newAlive[p]&&state.roles[p]!=="Mafia").length;
+      if(mafiaLeft===0)set(gameRef,{...state,status:"done",winner:"Villagers",eliminated:elim,alive:newAlive});
+      else if(mafiaLeft>=villLeft)set(gameRef,{...state,status:"done",winner:"Mafia",eliminated:elim,alive:newAlive});
+      else set(gameRef,{...state,status:"night",alive:newAlive,eliminated:elim,votes:{},nightKill:null});
+    }
+  } else if(state.status==="night"){
+    status.textContent=`🌙 Night — ${state.eliminated} was eliminated. Mafia chooses victim…`;
+    if(myRole==="Mafia"&&alive[myUsername]){
+      const vdiv=document.createElement("div");vdiv.style.cssText="display:flex;flex-direction:column;gap:4px;";
+      aliveList.filter(p=>p!==myUsername&&state.roles[p]!=="Mafia").forEach(p=>{
+        const btn=document.createElement("button");btn.className="g-btn";btn.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;";
+        btn.textContent=`Kill ${p}`;
+        btn.addEventListener("click",()=>{
+          const newAlive={...alive,[p]:false};
+          const mafiaLeft=Object.keys(newAlive).filter(x=>newAlive[x]&&state.roles[x]==="Mafia").length;
+          const villLeft=Object.keys(newAlive).filter(x=>newAlive[x]&&state.roles[x]!=="Mafia").length;
+          if(mafiaLeft>=villLeft)set(gameRef,{...state,status:"done",winner:"Mafia",alive:newAlive});
+          else set(gameRef,{...state,status:"day",alive:newAlive,nightKill:p,votes:{}});
+        });
+        vdiv.appendChild(btn);
+      });body.appendChild(vdiv);
+    } else {
+      const w=document.createElement("div");w.className="game-status";w.textContent="Waiting for mafia to choose…";body.appendChild(w);
+    }
+  } else if(state.status==="done"){
+    status.textContent=`🏆 ${state.winner} win!`;
+    if(isHost){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";rb.addEventListener("click",()=>set(gameRef,{player1:myUsername,status:"waiting",players:{[myUsername]:true}}));body.appendChild(rb);}
+  }
+}
+
+// ---- BINGO ----
+function renderBingo(state,gameRef,body){
+  const isHost=state.player1===myUsername;
+  const called=state.called||[];
+  const myCard=state.cards?.[myUsername];
+
+  if(!myCard){
+    // Generate a random bingo card
+    const nums=[];while(nums.length<25){const n=Math.floor(Math.random()*75)+1;if(!nums.includes(n))nums.push(n);}
+    nums[12]=0;// FREE space
+    set(ref(db,`games/${activeGameMsgId}/cards/${myUsername}`),nums);
+    set(ref(db,`games/${activeGameMsgId}/players/${myUsername}`),true);
+  }
+
+  const status=document.createElement("div");status.className="game-status";
+  status.textContent=state.status==="waiting"?"Waiting for host to start…":state.status==="done"?`🎉 ${state.winner} got BINGO!`:`${called.length} numbers called`;
+  body.appendChild(status);
+
+  if(isHost&&state.status==="waiting"){
+    const btn=document.createElement("button");btn.className="g-btn";btn.textContent="Start Bingo";
+    btn.addEventListener("click",()=>set(ref(db,`games/${activeGameMsgId}/status`),"playing"));body.appendChild(btn);
+  }
+
+  if(isHost&&state.status==="playing"){
+    const btn=document.createElement("button");btn.className="g-btn";btn.textContent="Call Number";
+    btn.addEventListener("click",()=>{
+      let n;do{n=Math.floor(Math.random()*75)+1;}while(called.includes(n));
+      const nc=[...called,n];
+      set(ref(db,`games/${activeGameMsgId}/called`),nc);
+    });body.appendChild(btn);
+  }
+
+  if(called.length){
+    const last=document.createElement("div");last.className="game-turn";last.textContent=`Last called: ${called[called.length-1]}`;body.appendChild(last);
+  }
+
+  if(myCard){
+    const grid=document.createElement("div");grid.style.cssText="display:grid;grid-template-columns:repeat(5,40px);gap:3px;margin:0 auto;";
+    myCard.forEach((n,i)=>{
+      const el=document.createElement("div");
+      const isMarked=n===0||called.includes(n);
+      el.style.cssText=`width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:${isMarked?"#dc143c":"#1a1a1a"};border:1px solid #2a2a2a;color:#fff;`;
+      el.textContent=n===0?"FREE":n;
+      grid.appendChild(el);
+    });
+    body.appendChild(grid);
+
+    // Check bingo
+    if(state.status==="playing"&&!state.winner){
+      const checkBingo=()=>{
+        const card=myCard;const marked=card.map(n=>n===0||called.includes(n));
+        const lines=[[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],[0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],[0,6,12,18,24],[4,8,12,16,20]];
+        return lines.some(l=>l.every(i=>marked[i]));
+      };
+      if(checkBingo())set(gameRef,{...state,status:"done",winner:myUsername});
+    }
+  }
+}
+
+// ---- UNO ----
+const UNO_COLORS=["red","blue","green","yellow"];
+const UNO_VALUES=["0","1","2","3","4","5","6","7","8","9","Skip","Reverse","+2"];
+function genUnoDeck(){
+  const deck=[];
+  UNO_COLORS.forEach(c=>{UNO_VALUES.forEach(v=>{deck.push({c,v});if(v!=="0")deck.push({c,v});});});
+  for(let i=0;i<4;i++){deck.push({c:"wild",v:"Wild"});deck.push({c:"wild",v:"+4"});}
+  return deck.sort(()=>Math.random()-0.5);
+}
+function unoCardStyle(card){
+  const colors={red:"#dc143c",blue:"#3b82f6",green:"#22c55e",yellow:"#f59e0b",wild:"#444"};
+  return `background:${colors[card.c]||"#444"};color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid transparent;min-width:36px;text-align:center;`;
+}
+function renderUno(state,gameRef,body){
+  const players=state.players||{};
+  if(!players[myUsername])set(ref(db,`games/${activeGameMsgId}/players/${myUsername}`),true);
+  const isHost=state.player1===myUsername;
+  const allP=Object.keys({...players,[myUsername]:true});
+
+  const status=document.createElement("div");status.className="game-status";body.appendChild(status);
+
+  if(state.status==="waiting"){
+    status.textContent=`Waiting… ${allP.length} joined (need 2+)`;
+    if(isHost&&allP.length>=2){
+      const btn=document.createElement("button");btn.className="g-btn";btn.textContent="Deal Cards";
+      btn.addEventListener("click",()=>{
+        const deck=genUnoDeck();const hands={};
+        allP.forEach(p=>{hands[p]=deck.splice(0,7);});
+        const top=deck.splice(0,1)[0];
+        set(gameRef,{...state,status:"playing",hands,deck,discard:[top],turn:allP[0],direction:1,drawCount:0});
+      });body.appendChild(btn);
+    }
+    return;
+  }
+
+  const myHand=state.hands?.[myUsername]||[];
+  const top=state.discard?.[state.discard.length-1];
+  const isMyTurn=state.turn===myUsername;
+
+  if(top){const topEl=document.createElement("div");topEl.style.cssText="text-align:center;";const tc=document.createElement("div");tc.style.cssText=unoCardStyle(top)+"display:inline-block;font-size:18px;padding:10px 16px;";tc.textContent=`${top.v}`;topEl.appendChild(document.createTextNode("Top card: "));topEl.appendChild(tc);body.appendChild(topEl);}
+
+  status.textContent=isMyTurn?"Your turn!":state.turn+"'s turn";
+
+  // Show hand counts
+  const hcounts=document.createElement("div");hcounts.style.cssText="display:flex;gap:6px;flex-wrap:wrap;";
+  allP.forEach(p=>{const el=document.createElement("div");el.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:3px 8px;font-size:11px;";el.textContent=`${p}: ${(state.hands?.[p]||[]).length} cards`;hcounts.appendChild(el);});
+  body.appendChild(hcounts);
+
+  if(myHand.length===0&&state.status==="playing"){
+    const w=document.createElement("div");w.className="game-turn";w.textContent="🎉 You win! No cards left!";body.appendChild(w);
+    set(gameRef,{...state,status:"done",winner:myUsername});return;
+  }
+
+  // Hand
+  const handDiv=document.createElement("div");handDiv.style.cssText="display:flex;flex-wrap:wrap;gap:4px;";
+  myHand.forEach((card,i)=>{
+    const el=document.createElement("div");el.style.cssText=unoCardStyle(card);
+    el.textContent=card.v;
+    const canPlay=isMyTurn&&(card.c===top?.c||card.v===top?.v||card.c==="wild");
+    if(canPlay){
+      el.style.borderColor="#f0f0f0";
+      el.addEventListener("click",()=>{
+        const newHand=myHand.filter((_,j)=>j!==i);
+        const newDiscard=[...state.discard,card];
+        const allPlayers=Object.keys(state.hands);
+        const ci=allPlayers.indexOf(myUsername);
+        let dir=state.direction||1;
+        if(card.v==="Reverse")dir*=-1;
+        let ni=(ci+dir+allPlayers.length)%allPlayers.length;
+        if(card.v==="Skip")ni=(ni+dir+allPlayers.length)%allPlayers.length;
+        const newHands={...state.hands,[myUsername]:newHand};
+        if(card.v==="+2"){
+          const nextP=allPlayers[ni];const drawn=state.deck.splice(0,2);
+          newHands[nextP]=[...(newHands[nextP]||[]),...drawn];
+          ni=(ni+dir+allPlayers.length)%allPlayers.length;
+        }
+        if(card.v==="+4"){
+          const nextP=allPlayers[ni];const drawn=state.deck.splice(0,4);
+          newHands[nextP]=[...(newHands[nextP]||[]),...drawn];
+          ni=(ni+dir+allPlayers.length)%allPlayers.length;
+        }
+        set(gameRef,{...state,hands:newHands,discard:newDiscard,turn:allPlayers[ni],direction:dir,deck:state.deck});
+      });
+    } else el.style.opacity="0.5";
+    handDiv.appendChild(el);
+  });
+  body.appendChild(handDiv);
+
+  if(isMyTurn){
+    const drawBtn=document.createElement("button");drawBtn.className="g-btn";drawBtn.style.cssText="margin-top:4px;";drawBtn.textContent="Draw Card";
+    drawBtn.addEventListener("click",()=>{
+      const deck=[...state.deck];const drawn=deck.splice(0,1)[0];if(!drawn)return;
+      const newHand=[...myHand,drawn];
+      const allPlayers=Object.keys(state.hands);const ci=allPlayers.indexOf(myUsername);
+      const ni=(ci+(state.direction||1)+allPlayers.length)%allPlayers.length;
+      set(gameRef,{...state,hands:{...state.hands,[myUsername]:newHand},deck,turn:allPlayers[ni]});
+    });body.appendChild(drawBtn);
+  }
+}
+
+// ---- 20 QUESTIONS ----
+function renderTwentyQ(state,gameRef,body){
+  const players=state.players||{};
+  if(!players[myUsername])set(ref(db,`games/${activeGameMsgId}/players/${myUsername}`),true);
+  const isHost=state.player1===myUsername;
+  const isThinkingPlayer=state.thinker===myUsername;
+
+  const status=document.createElement("div");status.className="game-status";body.appendChild(status);
+
+  if(state.status==="waiting"){
+    status.textContent=`Waiting… ${Object.keys(players).length} joined`;
+    if(isHost&&Object.keys(players).length>=2){
+      const btn=document.createElement("button");btn.className="g-btn";btn.textContent="Start (You think of something)";
+      btn.addEventListener("click",()=>set(gameRef,{...state,status:"playing",thinker:myUsername,questions:[],questionsLeft:20}));
+    }body.appendChild(btn||document.createElement("span"));
+    return;
+  }
+
+  const ql=state.questionsLeft||0;
+  status.textContent=isThinkingPlayer?`Think of something! ${ql} questions left`:`Guess in ${ql} questions!`;
+
+  const qlist=state.questions||[];
+  if(qlist.length){
+    const qdiv=document.createElement("div");qdiv.style.cssText="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;";
+    qlist.forEach(q=>{
+      const el=document.createElement("div");el.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:6px 10px;font-size:12px;";
+      el.innerHTML=`<span style="color:#888">${q.asker}:</span> ${q.q} <strong style="color:${q.a==="Yes"?"#22c55e":"#dc143c"}">${q.a||"…"}</strong>`;
+      qdiv.appendChild(el);
+    });body.appendChild(qdiv);
+  }
+
+  if(state.status==="playing"){
+    if(isThinkingPlayer){
+      // Answer last unanswered question
+      const last=qlist[qlist.length-1];
+      if(last&&!last.a){
+        const row=document.createElement("div");row.style.cssText="display:flex;gap:6px;";
+        ["Yes","No","Maybe"].forEach(ans=>{
+          const btn=document.createElement("button");btn.className="g-btn";btn.style.cssText="width:auto;padding:8px 14px;margin:0;";btn.textContent=ans;
+          btn.addEventListener("click",()=>{
+            const nq=[...qlist];nq[nq.length-1]={...last,a:ans};
+            set(gameRef,{...state,questions:nq});
+          });row.appendChild(btn);
+        });body.appendChild(row);
+        // Correct guess button
+        const cg=document.createElement("button");cg.className="g-btn";cg.style.cssText="background:#22c55e;";cg.textContent="They guessed it!";
+        cg.addEventListener("click",()=>set(gameRef,{...state,status:"done",winner:last.asker}));
+        body.appendChild(cg);
+      }
+    } else {
+      // Ask a question
+      const last=qlist[qlist.length-1];
+      if(!last||last.a){
+        const row=document.createElement("div");row.style.cssText="display:flex;gap:6px;";
+        const inp=document.createElement("input");inp.className="wordle-input";inp.placeholder="Ask a yes/no question…";inp.autocomplete="off";
+        const btn=document.createElement("button");btn.className="g-btn";btn.style.cssText="width:auto;padding:8px 14px;margin:0;";btn.textContent="Ask";
+        const doAsk=()=>{
+          const q=inp.value.trim();if(!q)return;
+          const nq=[...qlist,{q,asker:myUsername,a:null}];
+          set(gameRef,{...state,questions:nq,questionsLeft:(ql-1)});
+          inp.value="";
+          if(ql-1<=0)set(gameRef,{...state,questions:nq,questionsLeft:0,status:"done",winner:null});
+        };
+        inp.addEventListener("keydown",e=>{if(e.key==="Enter")doGuess();}); 
+        btn.addEventListener("click",doAsk);
+        row.appendChild(inp);row.appendChild(btn);body.appendChild(row);
+      } else {
+        const w=document.createElement("div");w.className="game-status";w.textContent="Waiting for answer…";body.appendChild(w);
+      }
+    }
+  }
+
+  if(state.status==="done"){
+    const w=document.createElement("div");w.className="game-turn";
+    w.textContent=state.winner?`🎉 ${state.winner} guessed it!`:"Nobody guessed it!";body.appendChild(w);
+    if(isHost){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";rb.addEventListener("click",()=>set(gameRef,{player1:myUsername,status:"waiting",players:{[myUsername]:true}}));body.appendChild(rb);}
+  }
 }
 
 // ---- DM MODAL ----
