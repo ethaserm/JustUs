@@ -231,6 +231,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .offline-badge{width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0;}
 .g-btn{background:#dc143c;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;}
 .g-btn:hover{background:var(--accent-dark);}
+/* PIN BAR */
+#pin-bar{display:none;background:#1a1a1a;border-bottom:1px solid #2a2a2a;padding:8px 16px;font-size:13px;color:#f0f0f0;align-items:center;gap:8px;flex-shrink:0;cursor:pointer;}
+#pin-bar:hover{background:#222;}
+#pin-bar .pin-icon{font-size:15px;flex-shrink:0;}
+#pin-bar .pin-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#aaa;}
+#pin-bar .pin-label{font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0;}
+#pin-bar .unpin-btn{background:none;border:none;color:#555;cursor:pointer;font-size:14px;padding:2px 4px;flex-shrink:0;}
+#pin-bar .unpin-btn:hover{color:#f0f0f0;}
+
 /* PLUS MENU */
 #plus-menu{position:fixed;bottom:62px;left:12px;background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:8px;display:none;flex-direction:column;gap:2px;width:200px;z-index:50;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
 #plus-menu.open{display:flex;}
@@ -538,6 +547,7 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
       <h3>Welcome to JustUs 👋</h3>
       <p>Pick a room or start a DM</p>
     </div>
+    <div id="pin-bar"><span class="pin-label">📌 PINNED</span><span class="pin-text" id="pin-text"></span><button class="unpin-btn" id="unpin-btn" title="Unpin">✕</button></div>
     <div id="messages" style="display:none"></div>
     <div id="typing-indicator" style="display:none"></div>
     <div id="plus-menu">
@@ -688,6 +698,7 @@ function openRoom(roomId){
   clearBadge(`unread-room-${roomId}`);
   currentDisappearSetting=null;
   loadMessages(`rooms/${roomId}`);
+  watchPins("room",roomId);
 }
 
 // ---- DM LIST ----
@@ -716,6 +727,7 @@ function openDm(dmId,name){
   watchDisappearing(dmId);
   loadMessages(`dms/${dmId}/messages`);
   setTimeout(()=>sweepExpired(`dms/${dmId}/messages`),500);
+  watchPins("dm",dmId);
 }
 
 // ---- CHAT CORE ----
@@ -807,9 +819,14 @@ function renderMsg(id,msg){
     const actions=document.createElement("div");actions.className="msg-actions";actions.style.cssText="position:absolute;top:-30px;"+(isMe?"right:0":"left:0")+";background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:2px;display:none;gap:2px;z-index:10;";
     // React button
     const _reactPath=getMsgPath();
+    const _pinPath=getMsgPath();
     const reactBtn=document.createElement("button");reactBtn.className="msg-action-btn";reactBtn.textContent="😊";reactBtn.title="React";
     reactBtn.addEventListener("click",(e)=>{e.stopPropagation();showReactPicker(e,id,_reactPath);});
     actions.appendChild(reactBtn);
+    // Pin button
+    const pinBtn=document.createElement("button");pinBtn.className="msg-action-btn";pinBtn.textContent="📌";pinBtn.title="Pin message";
+    pinBtn.addEventListener("click",()=>pinMessage(id,msg,_pinPath));
+    actions.appendChild(pinBtn);
     if(isMe&&!msg.imageUrl&&!msg.gifUrl){
       // Edit
       const editBtn=document.createElement("button");editBtn.className="msg-action-btn";editBtn.textContent="✏️";editBtn.title="Edit";
@@ -1595,18 +1612,20 @@ function handleChessClick(e){
 }
 
 function updateChessBoard(board,selected,possible){
-  if(!chessBoardEl)return;
-  Array.from(chessBoardEl.children).forEach((sq,idx)=>{
+  const boardEl=document.getElementById("chess-board-el");
+  if(!boardEl)return;
+  Array.from(boardEl.children).forEach((sq,idx)=>{
     const row=Math.floor(idx/8);const col=idx%8;
     const isLight=(row+col)%2===0;
     let bg=isLight?"#f0d9b5":"#b58863";
-    if(selected===idx)bg=isLight?"#f6f669":"#caca2c";
-    else if(possible&&possible.includes(idx))bg=isLight?"rgba(20,100,20,0.5)":"rgba(20,100,20,0.5)";
+    if(selected===idx)bg="#f6f669";
+    else if(possible&&possible.includes(idx))bg=isLight?"rgba(0,150,0,0.45)":"rgba(0,150,0,0.45)";
     sq.style.background=bg;
     const piece=board[idx];
     sq.textContent=piece?(CHESS_PIECES[piece]||""):"";
-    sq.style.color=piece&&piece[0]==="w"?"#fff":"#111";
-    sq.style.textShadow=piece&&piece[0]==="w"?"0 0 2px #000,0 0 2px #000":"0 0 2px #fff,0 0 2px #fff";
+    sq.style.color=piece&&piece[0]==="w"?"#fff":"#1a1a1a";
+    sq.style.textShadow=piece?(piece[0]==="w"?"0 1px 3px #000,0 0 3px #000":"0 1px 3px #ccc,0 0 3px #fff"):"none";
+    sq.style.fontSize="26px";
   });
 }
 
@@ -2201,6 +2220,41 @@ window.saveAvatar=()=>{
   document.getElementById("avatar-modal").classList.remove("open");
 };
 document.getElementById("avatar-modal").addEventListener("click",e=>{if(e.target===document.getElementById("avatar-modal"))document.getElementById("avatar-modal").classList.remove("open");});
+
+
+// ---- PIN MESSAGES ----
+function pinMessage(msgId,msg,msgPath){
+  const pinRef=ref(db,`pins/${currentChatType}_${currentChatId}`);
+  const text=msg.imageUrl?"📷 Image":msg.gifUrl?"GIF":msg.text||"";
+  set(pinRef,{msgId,text:text.slice(0,80),name:msg.name,msgPath});
+  showPinBar({msgId,text:text.slice(0,80),name:msg.name,msgPath});
+}
+
+function showPinBar(pin){
+  if(!pin){
+    document.getElementById("pin-bar").style.display="none";
+    return;
+  }
+  document.getElementById("pin-bar").style.display="flex";
+  document.getElementById("pin-text").textContent=`${pin.name}: ${pin.text}`;
+  // Click to scroll to message
+  document.getElementById("pin-bar").onclick=(e)=>{
+    if(e.target.id==="unpin-btn")return;
+    const el=document.querySelector(`[data-id="${pin.msgId}"]`);
+    if(el)el.scrollIntoView({behavior:"smooth",block:"center"});
+  };
+  document.getElementById("unpin-btn").onclick=(e)=>{
+    e.stopPropagation();
+    remove(ref(db,`pins/${currentChatType}_${currentChatId}`));
+    document.getElementById("pin-bar").style.display="none";
+  };
+}
+
+function watchPins(chatType,chatId){
+  onValue(ref(db,`pins/${chatType}_${chatId}`),snap=>{
+    showPinBar(snap.val()||null);
+  });
+}
 
 // ---- SOUND & NOTIF ----
 function initSound(){
