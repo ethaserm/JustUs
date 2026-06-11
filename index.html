@@ -258,7 +258,7 @@ const ROOMS=[{id:"general",name:"General",icon:"💬"},{id:"gaming",name:"Gaming
 const EMOJIS=["😀","😂","😍","🥹","😎","🤔","😭","🔥","💀","👀","🙏","👏","💯","🎉","❤️","🫡","✅","😤","💤","🤝","😏","🥶","🤯","👋","⚡"];
 const GAMES=[{id:"ttt",name:"Tic Tac Toe",icon:"⭕",desc:"2 players • Classic"},{id:"c4",name:"Connect 4",icon:"🔴",desc:"2 players • Drop discs"},{id:"rps",name:"Rock Paper Scissors",icon:"✊",desc:"2 players • Best of 3"},{id:"wordle",name:"Wordle",icon:"🟩",desc:"1-2 players • Guess word"},{id:"hangman",name:"Hangman",icon:"🪢",desc:"2 players • Guess letters"},{id:"chess",name:"Chess",icon:"♟️",desc:"2 players • Full game"},{id:"snake",name:"Snake",icon:"🐍",desc:"1 player • High score"},{id:"battleship",name:"Battleship",icon:"🚢",desc:"2 players • Sink ships"}];
 const IMGBB_KEY="0fedaba33b0fca5eec75f16568047712";
-const GIPHY_KEY="GlVGYHkr3wsW10x0XNnEBIzpAgmxFXgW";
+const GIPHY_KEY="cW2vztoxX3cu13EWLHOYApriZDPeQsAe";
 const AVATAR_COLOURS=["#dc143c","#6c63ff","#22c55e","#f59e0b","#3b82f6","#ec4899","#14b8a6","#f97316","#8b5cf6","#06b6d4","#84cc16","#ef4444"];
 const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
 </script>
@@ -756,7 +756,7 @@ function setupInputHandlers(){
 }
 
 async function loadGiphy(query){
-  const res=await fetch(`https://api.giphy.com/v1/gifs/${query==="trending"?"trending":"search"}?api_key=GlVGYHkr3wsW10x0XNnEBIzpAgmxFXgW&limit=12${query!=="trending"?"&q="+encodeURIComponent(query):""}&rating=g`);
+  const res=await fetch(`https://api.giphy.com/v1/gifs/${query==="trending"?"trending":"search"}?api_key=cW2vztoxX3cu13EWLHOYApriZDPeQsAe&limit=12${query!=="trending"?"&q="+encodeURIComponent(query):""}&rating=g`);
   const data=await res.json();
   const grid=document.getElementById("giphy-results");grid.innerHTML="";
   (data.data||[]).forEach(gif=>{
@@ -836,31 +836,26 @@ function openGameModal(gameId,msgId,msgData){
   const gameRef=ref(db,`games/${msgId}`);
   const isHost=msgData.name===myUsername;
 
-  if(isHost){
-    // Host always re-initialises if state missing
-    get(gameRef).then(snap=>{
+  get(gameRef).then(snap=>{
+    if(isHost){
       if(!snap.exists()){
+        // Init then render — onValue will fire once written
         initGameState(gameId,gameRef);
       }
       renderGameUI(gameId,gameRef,body);
-    });
-  } else {
-    // Joiner: write player2 + set status=playing, THEN start listener
-    get(gameRef).then(snap=>{
-      const updates={};
+    } else {
+      // Joiner
       if(!snap.exists()||!snap.val().player2){
-        updates[`games/${msgId}/player2`]=myUsername;
-        updates[`games/${msgId}/status`]="playing";
-      }
-      if(Object.keys(updates).length){
-        // Use individual sets so we don't overwrite the whole state
-        Promise.all(Object.entries(updates).map(([path,val])=>set(ref(db,path),val)))
-          .then(()=>renderGameUI(gameId,gameRef,body));
+        // Write player2 first, then render
+        Promise.all([
+          set(ref(db,`games/${msgId}/player2`),myUsername),
+          set(ref(db,`games/${msgId}/status`),"playing")
+        ]).then(()=>renderGameUI(gameId,gameRef,body));
       } else {
         renderGameUI(gameId,gameRef,body);
       }
-    });
-  }
+    }
+  });
 }
 
 function initGameState(gameId,gameRef){
@@ -869,19 +864,17 @@ function initGameState(gameId,gameRef){
   else if(gameId==="c4")set(gameRef,{...base,board:Array(42).fill("")});
   else if(gameId==="rps")set(gameRef,{...base,p1choice:null,p2choice:null,round:1,p1score:0,p2score:0});
   else if(gameId==="wordle"){
-    const words=["CRANE","SLATE","AUDIO","BRICK","FLAME","GRANT","HASTE","IRONY","JAZZY","KNEEL","LEMON","MAPLE","NERVE","OXIDE","PIANO","QUILT","RIVAL","SHORE","TIGER","ULTRA","VIVID","WORLD","XENON","YACHT","ZEBRA","CLOUD","DRIFT","EPOCH","FROST","GLOOM","CHESS"];
-    const word=words[Math.floor(Math.random()*words.length)];
-    set(gameRef,{...base,word,guesses:[],currentGuess:"",solved:false});
+    const words=["CRANE","SLATE","AUDIO","BRICK","FLAME","GRANT","HASTE","IRONY","JAZZY","KNEEL","LEMON","MAPLE","NERVE","OXIDE","PIANO","QUILT","RIVAL","SHORE","TIGER","ULTRA","VIVID","WORLD","CLOUD","DRIFT","FROST","CHESS","SNAKE","JUICE","PLATE","GLOBE"];
+    set(gameRef,{...base,word:words[Math.floor(Math.random()*words.length)],guesses:[],solved:false});
   }
   else if(gameId==="hangman"){
-    const words=["JAVASCRIPT","FIREBASE","CRIMSON","KEYBOARD","MONITOR","PYTHON","DRAGON","CASTLE","THUNDER","PENGUIN","VINTAGE","QUANTUM","ECLIPSE"];
-    const word=words[Math.floor(Math.random()*words.length)];
-    set(gameRef,{...base,word,guessed:[],wrong:0});
+    const words=["JAVASCRIPT","FIREBASE","CRIMSON","KEYBOARD","MONITOR","PYTHON","DRAGON","CASTLE","THUNDER","PENGUIN","VINTAGE","QUANTUM","ECLIPSE","ROCKET","NINJA"];
+    set(gameRef,{...base,word:words[Math.floor(Math.random()*words.length)],guessed:[],wrong:0});
   }
-  else if(gameId==="chess")set(gameRef,{...base,board:initChessBoard(),selected:null,castling:{wKing:true,wRookK:true,wRookQ:true,bKing:true,bRookK:true,bRookQ:true},turn:"white"});
+  else if(gameId==="chess")set(gameRef,{...base,board:initChessBoard(),turn:"white",status:"waiting"});
+  else if(gameId==="snake")set(gameRef,{player1:myUsername,player2:null,status:"waiting"});
   else if(gameId==="battleship"){
-    const ships=generateBattleshipBoard();
-    set(gameRef,{...base,p1ships:ships,p2ships:null,p1shots:[],p2shots:[],phase:"setup"});
+    set(gameRef,{player1:myUsername,player2:null,status:"waiting",p1ships:generateBattleshipBoard(),p2ships:null,p1shots:[],p2shots:[],turn:myUsername,phase:"setup"});
   }
 }
 
@@ -905,68 +898,78 @@ function renderGameUI(gameId,gameRef,body){
   });
 }
 
+function myRole(state){
+  if(state.player1===myUsername)return"p1";
+  if(state.player2===myUsername)return"p2";
+  return null;
+}
+function otherPlayer(state){return state.player1===myUsername?state.player2:state.player1;}
+function isMyTurn(state){return state.turn===myUsername&&state.status==="playing";}
+
 // TTT
 function renderTTT(state,gameRef,body){
-  const isP1=state.player1===myUsername;const isP2=state.player2===myUsername;
-  const myMark=isP1?"X":isP2?"O":null;
-  const status=document.createElement("div");status.className="game-status";
-  if(state.status==="waiting")status.textContent="Waiting for opponent…";
-  else if(state.status==="win")status.textContent=`${state.winner} wins! 🎉`;
-  else if(state.status==="draw")status.textContent="It's a draw!";
-  else status.textContent=`${state.turn}'s turn (${state.turn===state.player1?"X":"O"})`;
-  body.appendChild(status);
+  const role=myRole(state);
+  const mark=role==="p1"?"X":role==="p2"?"O":null;
+  const statusEl=document.createElement("div");statusEl.className="game-status";
+  if(state.status==="waiting")statusEl.textContent="Waiting for opponent to join…";
+  else if(state.status==="win")statusEl.textContent=`🎉 ${state.winner} wins!`;
+  else if(state.status==="draw")statusEl.textContent="It's a draw!";
+  else statusEl.textContent=isMyTurn(state)?`Your turn (${mark})`:`${state.turn}'s turn`;
+  body.appendChild(statusEl);
   const board=document.createElement("div");board.className="ttt-board";
-  state.board.forEach((cell,i)=>{
+  (state.board||Array(9).fill("")).forEach((cell,i)=>{
     const sq=document.createElement("div");sq.className="ttt-cell"+(cell?" taken":"");
     sq.textContent=cell;
-    if(!cell&&myMark&&state.turn===myUsername&&state.status==="playing"){
+    if(!cell&&mark&&isMyTurn(state)){
+      sq.style.cursor="pointer";
       sq.addEventListener("click",()=>{
-        const nb=[...state.board];nb[i]=myMark;
-        const win=checkTTT(nb,myMark);const draw=nb.every(c=>c)&&!win;
-        set(gameRef,{...state,board:nb,turn:state.turn===state.player1?state.player2:state.player1,status:win?"win":draw?"draw":"playing",winner:win?myUsername:null});
+        const nb=[...state.board];nb[i]=mark;
+        const win=checkTTT(nb,mark);const draw=nb.every(c=>c)&&!win;
+        set(gameRef,{...state,board:nb,turn:otherPlayer(state),status:win?"win":draw?"draw":"playing",winner:win?myUsername:null});
       });
     }
     board.appendChild(sq);
   });
   body.appendChild(board);
-  if(state.status!=="playing"&&state.status!=="waiting"){
+  if(state.status==="win"||state.status==="draw"){
     const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";
     rb.addEventListener("click",()=>initGameState("ttt",gameRef));body.appendChild(rb);
   }
 }
-function checkTTT(b,m){const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];return wins.some(([a,c,d])=>b[a]===m&&b[c]===m&&b[d]===m);}
+function checkTTT(b,m){return[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(([a,c,d])=>b[a]===m&&b[c]===m&&b[d]===m);}
 
 // Connect 4
 function renderC4(state,gameRef,body){
-  const isP1=state.player1===myUsername;const isP2=state.player2===myUsername;
-  const myColor=isP1?"r":isP2?"y":null;
-  const status=document.createElement("div");status.className="game-status";
-  if(state.status==="waiting")status.textContent="Waiting for opponent…";
-  else if(state.status==="win")status.textContent=`${state.winner} wins! 🎉`;
-  else if(state.status==="draw")status.textContent="Draw!";
-  else status.textContent=`${state.turn}'s turn`;
-  body.appendChild(status);
-  const wrap=document.createElement("div");wrap.className="c4-wrap";
+  const role=myRole(state);
+  const myColor=role==="p1"?"r":role==="p2"?"y":null;
+  const statusEl=document.createElement("div");statusEl.className="game-status";
+  if(state.status==="waiting")statusEl.textContent="Waiting for opponent to join…";
+  else if(state.status==="win")statusEl.textContent=`🎉 ${state.winner} wins!`;
+  else if(state.status==="draw")statusEl.textContent="Draw!";
+  else statusEl.textContent=isMyTurn(state)?"Your turn":`${state.turn}'s turn`;
+  body.appendChild(statusEl);
+  const wrap=document.createElement("div");wrap.style.overflowX="auto";
   const colBtns=document.createElement("div");colBtns.className="c4-col-btns";
   for(let c=0;c<7;c++){
     const btn=document.createElement("button");btn.className="c4-col-btn";btn.textContent="▼";
-    if(myColor&&state.turn===myUsername&&state.status==="playing"){
+    if(myColor&&isMyTurn(state)){
       btn.addEventListener("click",()=>{
-        const nb=[...state.board];
-        for(let r=5;r>=0;r--){if(!nb[r*7+c]){nb[r*7+c]=myColor;break;}}
-        const win=checkC4(nb,myColor);const draw=nb.every(c=>c)&&!win;
-        set(gameRef,{...state,board:nb,turn:state.turn===state.player1?state.player2:state.player1,status:win?"win":draw?"draw":"playing",winner:win?myUsername:null});
+        const nb=[...state.board];let placed=false;
+        for(let r=5;r>=0;r--){if(!nb[r*7+c]){nb[r*7+c]=myColor;placed=true;break;}}
+        if(!placed)return;
+        const win=checkC4(nb,myColor);const draw=nb.every(x=>x)&&!win;
+        set(gameRef,{...state,board:nb,turn:otherPlayer(state),status:win?"win":draw?"draw":"playing",winner:win?myUsername:null});
       });
-    } else btn.disabled=true;
+    }else{btn.disabled=true;}
     colBtns.appendChild(btn);
   }
   wrap.appendChild(colBtns);
   const board=document.createElement("div");board.className="c4-board";
-  state.board.forEach(cell=>{
+  (state.board||Array(42).fill("")).forEach(cell=>{
     const sq=document.createElement("div");sq.className="c4-cell"+(cell?` ${cell}`:"");board.appendChild(sq);
   });
   wrap.appendChild(board);body.appendChild(wrap);
-  if(state.status!=="playing"&&state.status!=="waiting"){
+  if(state.status==="win"||state.status==="draw"){
     const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";
     rb.addEventListener("click",()=>initGameState("c4",gameRef));body.appendChild(rb);
   }
@@ -981,57 +984,50 @@ function checkC4(b,m){
 
 // RPS
 function renderRPS(state,gameRef,body){
-  const isP1=state.player1===myUsername;const isP2=state.player2===myUsername;
-  const myChoice=isP1?state.p1choice:state.p2choice;
-  const oppChoice=isP1?state.p2choice:state.p1choice;
-  const status=document.createElement("div");status.className="game-status";
-  if(state.status==="waiting")status.textContent="Waiting for opponent…";
-  else if(myChoice&&!oppChoice)status.textContent="Waiting for opponent's pick…";
-  else if(!myChoice)status.textContent="Make your choice!";
-  body.appendChild(status);
-  const score=document.createElement("div");score.className="game-turn";
-  score.textContent=`${state.player1}: ${state.p1score||0} — ${state.player2||"??"}: ${state.p2score||0} | Round ${state.round||1}/3`;
-  body.appendChild(score);
+  const role=myRole(state);
+  const myChoice=role==="p1"?state.p1choice:role==="p2"?state.p2choice:null;
+  const oppChoice=role==="p1"?state.p2choice:state.p1choice;
+  const statusEl=document.createElement("div");statusEl.className="game-status";
+  if(state.status==="waiting")statusEl.textContent="Waiting for opponent…";
+  else if(state.status==="done")statusEl.textContent=state.winner==="Draw"?"It's a draw!":`🏆 ${state.winner} wins the match!`;
+  else if(myChoice)statusEl.textContent="Waiting for opponent's pick…";
+  else statusEl.textContent="Make your choice!";
+  body.appendChild(statusEl);
+  const scoreEl=document.createElement("div");scoreEl.className="game-turn";
+  scoreEl.textContent=`${state.player1||"P1"}: ${state.p1score||0} — ${state.player2||"??"}: ${state.p2score||0} | Round ${state.round||1}/3`;
+  body.appendChild(scoreEl);
   if(myChoice&&oppChoice){
-    const result=document.createElement("div");result.className="game-status";
     const rpsWin={rock:"scissors",paper:"rock",scissors:"paper"};
-    let txt="";
-    if(myChoice===oppChoice)txt="🤝 Tie!";
-    else if(rpsWin[myChoice]===oppChoice)txt="✅ You win this round!";
-    else txt="❌ You lose this round!";
-    result.textContent=`You: ${myChoice} vs Them: ${oppChoice} — ${txt}`;
-    body.appendChild(result);
-    // Auto-advance after 1.5s
-    if(state.status==="playing"){
+    const resultEl=document.createElement("div");resultEl.className="game-status";
+    const myC=role==="p1"?state.p1choice:state.p2choice;
+    const opC=role==="p1"?state.p2choice:state.p1choice;
+    let txt=myC===opC?"🤝 Tie!":rpsWin[myC]===opC?"✅ You win this round!":"❌ You lose this round!";
+    resultEl.textContent=`You: ${myC} vs Them: ${opC} — ${txt}`;
+    body.appendChild(resultEl);
+    if(state.status==="playing"&&role==="p1"){
       setTimeout(()=>{
-        const p1w=rpsWin[state.p1choice]===state.p2choice;const p2w=rpsWin[state.p2choice]===state.p1choice;
-        const np1s=(state.p1score||0)+(p1w?1:0);const np2s=(state.p2score||0)+(p2w?1:0);
-        const nr=state.round+1;
-        if(nr>3||np1s>=2||np2s>=2){
-          const winner=np1s>np2s?state.player1:np2s>np1s?state.player2:"Draw";
-          set(gameRef,{...state,p1choice:null,p2choice:null,p1score:np1s,p2score:np2s,round:nr,status:"done",winner});
-        } else {
-          set(gameRef,{...state,p1choice:null,p2choice:null,p1score:np1s,p2score:np2s,round:nr});
+        const rw=rpsWin[state.p1choice]===state.p2choice;const lw=rpsWin[state.p2choice]===state.p1choice;
+        const ns1=(state.p1score||0)+(rw?1:0);const ns2=(state.p2score||0)+(lw?1:0);
+        const nr=(state.round||1)+1;
+        if(nr>3||ns1>=2||ns2>=2){
+          set(gameRef,{...state,p1choice:null,p2choice:null,p1score:ns1,p2score:ns2,round:nr,status:"done",winner:ns1>ns2?state.player1:ns2>ns1?state.player2:"Draw"});
+        }else{
+          set(gameRef,{...state,p1choice:null,p2choice:null,p1score:ns1,p2score:ns2,round:nr});
         }
-      },1500);
+      },1800);
     }
   }
   if(state.status==="done"){
-    const fin=document.createElement("div");fin.className="game-turn";
-    fin.textContent=state.winner==="Draw"?"It's a draw!":`🏆 ${state.winner} wins the match!`;
-    body.appendChild(fin);
-    const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";
-    rb.addEventListener("click",()=>initGameState("rps",gameRef));body.appendChild(rb);
+    if(role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";rb.addEventListener("click",()=>initGameState("rps",gameRef));body.appendChild(rb);}
     return;
   }
-  if(!myChoice&&(isP1||isP2)&&state.status==="playing"){
+  if(!myChoice&&role&&state.status==="playing"){
     const btns=document.createElement("div");btns.className="rps-btns";
-    ["rock","paper","scissors"].forEach(c=>{
-      const btn=document.createElement("button");btn.className="rps-btn";
-      btn.textContent=c==="rock"?"🪨":c==="paper"?"📄":"✂️";
+    [{k:"rock",e:"🪨"},{k:"paper",e:"📄"},{k:"scissors",e:"✂️"}].forEach(({k,e})=>{
+      const btn=document.createElement("button");btn.className="rps-btn";btn.textContent=e;
       btn.addEventListener("click",()=>{
-        if(isP1)set(ref(db,`games/${activeGameMsgId}/p1choice`),c);
-        else set(ref(db,`games/${activeGameMsgId}/p2choice`),c);
+        const path=role==="p1"?`p1choice`:`p2choice`;
+        set(ref(db,`games/${activeGameMsgId}/${path}`),k);
       });
       btns.appendChild(btn);
     });
@@ -1041,37 +1037,35 @@ function renderRPS(state,gameRef,body){
 
 // Wordle
 function renderWordle(state,gameRef,body){
-  const isPlayer=state.player1===myUsername||state.player2===myUsername;
-  const status=document.createElement("div");status.className="game-status";
-  if(state.status==="waiting")status.textContent="Waiting for opponent to join…";
-  else if(state.solved)status.textContent=`🎉 ${state.solver||myUsername} solved it!`;
-  else status.textContent=`Guesses: ${(state.guesses||[]).length}/6`;
-  body.appendChild(status);
+  const role=myRole(state);
+  const statusEl=document.createElement("div");statusEl.className="game-status";
+  if(state.status==="waiting")statusEl.textContent="Waiting for opponent to join…";
+  else if(state.solved)statusEl.textContent=`🎉 ${state.solver} solved it!`;
+  else if((state.guesses||[]).length>=6)statusEl.textContent=`Answer was: ${state.word}`;
+  else statusEl.textContent=`Guesses: ${(state.guesses||[]).length}/6`;
+  body.appendChild(statusEl);
   const grid=document.createElement("div");grid.className="wordle-grid";
   const guesses=state.guesses||[];
   for(let r=0;r<6;r++){
     for(let c=0;c<5;c++){
       const cell=document.createElement("div");cell.className="wordle-cell";
-      if(guesses[r]){
-        const g=guesses[r];cell.textContent=g.word[c]||"";cell.classList.add(g.result[c]);
-      }
+      if(guesses[r]){cell.textContent=guesses[r].word[c]||"";cell.classList.add(guesses[r].result[c]);}
       grid.appendChild(cell);
     }
   }
   body.appendChild(grid);
-  if(!state.solved&&guesses.length<6&&isPlayer&&state.status==="playing"){
+  if(!state.solved&&guesses.length<6&&role&&state.status==="playing"){
     const row=document.createElement("div");row.className="wordle-row";
-    const inp=document.createElement("input");inp.className="wordle-input";inp.placeholder="5-letter word";inp.maxLength=5;
-    const gbtn=document.createElement("button");gbtn.className="g-btn";gbtn.style.width="auto";gbtn.style.padding="8px 14px";gbtn.textContent="Guess";
+    const inp=document.createElement("input");inp.className="wordle-input";inp.placeholder="5-letter word";inp.maxLength=5;inp.autocomplete="off";
+    const gbtn=document.createElement("button");gbtn.className="g-btn";gbtn.style.cssText="width:auto;padding:8px 14px;margin:0;";gbtn.textContent="Guess";
     const doGuess=()=>{
       const w=inp.value.toUpperCase().trim();if(w.length!==5)return;
       const word=state.word;
-      const result=Array(5).fill("absent");const used=Array(5).fill(false);const usedW=Array(5).fill(false);
-      for(let i=0;i<5;i++)if(w[i]===word[i]){result[i]="correct";used[i]=true;usedW[i]=true;}
-      for(let i=0;i<5;i++)if(result[i]!=="correct")for(let j=0;j<5;j++)if(!used[j]&&!usedW[i]&&w[i]===word[j]){result[i]="present";used[j]=true;usedW[i]=true;break;}
+      const result=Array(5).fill("absent");const usedWord=Array(5).fill(false);const usedGuess=Array(5).fill(false);
+      for(let i=0;i<5;i++)if(w[i]===word[i]){result[i]="correct";usedWord[i]=true;usedGuess[i]=true;}
+      for(let i=0;i<5;i++)if(!usedGuess[i])for(let j=0;j<5;j++)if(!usedWord[j]&&w[i]===word[j]){result[i]="present";usedWord[j]=true;usedGuess[i]=true;break;}
       const ng=[...guesses,{word:w,result}];
-      const solved=w===word;
-      set(gameRef,{...state,guesses:ng,solved,solver:solved?myUsername:null});
+      set(gameRef,{...state,guesses:ng,solved:w===word,solver:w===word?myUsername:null});
       inp.value="";
     };
     inp.addEventListener("keydown",e=>{if(e.key==="Enter")doGuess();});
@@ -1079,37 +1073,31 @@ function renderWordle(state,gameRef,body){
     row.appendChild(inp);row.appendChild(gbtn);body.appendChild(row);
   }
   if(state.solved||(guesses.length>=6&&!state.solved)){
-    if(!state.solved){const ans=document.createElement("div");ans.className="game-turn";ans.textContent=`Answer: ${state.word}`;body.appendChild(ans);}
-    const rb=document.createElement("button");rb.className="g-btn";rb.textContent="New Game";
-    rb.addEventListener("click",()=>initGameState("wordle",gameRef));body.appendChild(rb);
+    if(role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="New Game";rb.addEventListener("click",()=>initGameState("wordle",gameRef));body.appendChild(rb);}
   }
 }
 
 // Hangman
 function renderHangman(state,gameRef,body){
-  const isPlayer=state.player1===myUsername||state.player2===myUsername;
+  const role=myRole(state);
   const word=state.word||"";const guessed=state.guessed||[];const wrong=state.wrong||0;
-  const maxWrong=6;const won=word.split("").every(l=>guessed.includes(l));
-  const lost=wrong>=maxWrong;
-  const hangParts=["😐","😟","🙁","😢","😰","😨","💀"];
-  const status=document.createElement("div");status.className="game-status";
-  if(state.status==="waiting")status.textContent="Waiting for opponent…";
-  else if(won)status.textContent="🎉 You got it!";
-  else if(lost)status.textContent=`💀 Game over! Word was: ${word}`;
-  else status.textContent=`${hangParts[wrong]} Wrong: ${wrong}/${maxWrong}`;
-  body.appendChild(status);
+  const won=word.split("").every(l=>guessed.includes(l));const lost=wrong>=6;
+  const faces=["😐","😟","🙁","😢","😰","😨","💀"];
+  const statusEl=document.createElement("div");statusEl.className="game-status";
+  if(state.status==="waiting")statusEl.textContent="Waiting for opponent…";
+  else if(won)statusEl.textContent="🎉 You got it!";
+  else if(lost)statusEl.textContent=`💀 Game over! Word: ${word}`;
+  else statusEl.textContent=`${faces[wrong]} Wrong: ${wrong}/6`;
+  body.appendChild(statusEl);
   const wordDiv=document.createElement("div");wordDiv.className="hangman-word";
-  word.split("").forEach(l=>{
-    const el=document.createElement("div");el.className="hm-letter";
-    el.textContent=guessed.includes(l)?l:"";wordDiv.appendChild(el);
-  });
+  word.split("").forEach(l=>{const el=document.createElement("div");el.className="hm-letter";el.textContent=guessed.includes(l)?l:"";wordDiv.appendChild(el);});
   body.appendChild(wordDiv);
-  if(!won&&!lost&&isPlayer&&state.status==="playing"){
+  if(!won&&!lost&&role&&state.status==="playing"){
     const keys=document.createElement("div");keys.className="hm-keys";
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(l=>{
       const btn=document.createElement("button");btn.className="hm-key";btn.textContent=l;
       if(guessed.includes(l))btn.disabled=true;
-      btn.addEventListener("click",()=>{
+      else btn.addEventListener("click",()=>{
         const ng=[...guessed,l];const nw=word.includes(l)?wrong:wrong+1;
         set(gameRef,{...state,guessed:ng,wrong:nw});
       });
@@ -1117,207 +1105,183 @@ function renderHangman(state,gameRef,body){
     });
     body.appendChild(keys);
   }
-  if(won||lost){
-    const rb=document.createElement("button");rb.className="g-btn";rb.textContent="New Game";
-    rb.addEventListener("click",()=>initGameState("hangman",gameRef));body.appendChild(rb);
-  }
+  if((won||lost)&&role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="New Game";rb.addEventListener("click",()=>initGameState("hangman",gameRef));body.appendChild(rb);}
 }
 
-// ---- CHESS ----
+// Chess
 const CHESS_PIECES={wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"};
 function initChessBoard(){
   const b=Array(64).fill(null);
-  const order=["R","N","B","Q","K","B","N","R"];
-  order.forEach((p,i)=>{b[i]=`b${p}`;b[56+i]=`w${p}`;});
+  ["R","N","B","Q","K","B","N","R"].forEach((p,i)=>{b[i]=`b${p}`;b[56+i]=`w${p}`;});
   for(let i=0;i<8;i++){b[8+i]="bP";b[48+i]="wP";}
   return b;
 }
 let chessSelected=null;
 function renderChess(state,gameRef,body){
-  const isWhite=state.player1===myUsername;const isBlack=state.player2===myUsername;
-  const myColor=isWhite?"w":isBlack?"b":null;
-  const board=state.board;const turn=state.turn||"white";
-  const status=document.createElement("div");status.className="game-status";
-  if(state.status==="waiting")status.textContent="Waiting for opponent…";
-  else if(state.status==="checkmate")status.textContent=`Checkmate! ${state.winner} wins!`;
-  else status.textContent=`${turn==="white"?"⬜":"⬛"} ${turn}'s turn`;
-  body.appendChild(status);
+  const role=myRole(state);
+  const myColor=role==="p1"?"w":role==="p2"?"b":null;
+  const turn=state.turn||"white";
+  const myTurnColor=myColor==="w"?"white":"black";
+  const canMove=myColor&&turn===myTurnColor&&state.status==="playing";
+  const statusEl=document.createElement("div");statusEl.className="game-status";
+  if(state.status==="waiting")statusEl.textContent="Waiting for opponent…";
+  else if(state.status==="checkmate")statusEl.textContent=`Checkmate! ${state.winner} wins!`;
+  else statusEl.textContent=canMove?"Your turn":`${turn}'s turn`;
+  body.appendChild(statusEl);
   const boardEl=document.createElement("div");boardEl.className="chess-board";
-  const possible=chessSelected!==null?getChessMoves(board,chessSelected,state):[];
+  const board=state.board||initChessBoard();
+  const possible=chessSelected!==null?getChessMoves(board,chessSelected):[];
   board.forEach((piece,idx)=>{
     const row=Math.floor(idx/8);const col=idx%8;
-    const sq=document.createElement("div");
-    sq.className=`chess-sq ${(row+col)%2===0?"light":"dark"}`;
+    const sq=document.createElement("div");sq.className=`chess-sq ${(row+col)%2===0?"light":"dark"}`;
     if(chessSelected===idx)sq.classList.add("sel");
     if(possible.includes(idx))sq.classList.add("possible");
     if(piece)sq.textContent=CHESS_PIECES[piece]||"";
     sq.addEventListener("click",()=>{
-      if(!myColor)return;
-      const myTurn=(myColor==="w"&&turn==="white")||(myColor==="b"&&turn==="black");
-      if(!myTurn)return;
+      if(!canMove)return;
       if(chessSelected===null){
         if(piece&&piece[0]===myColor){chessSelected=idx;renderChess(state,gameRef,body);}
-      } else {
-        if(possible.includes(idx)){
-          const nb=[...board];nb[idx]=nb[chessSelected];nb[chessSelected]=null;
-          chessSelected=null;
-          const nextTurn=turn==="white"?"black":"white";
-          set(gameRef,{...state,board:nb,turn:nextTurn,selected:null,status:"playing"});
-        } else if(piece&&piece[0]===myColor){chessSelected=idx;renderChess(state,gameRef,body);}
-        else{chessSelected=null;renderChess(state,gameRef,body);}
-      }
+      }else if(possible.includes(idx)){
+        const nb=[...board];nb[idx]=nb[chessSelected];nb[chessSelected]=null;
+        chessSelected=null;
+        set(gameRef,{...state,board:nb,turn:turn==="white"?"black":"white"});
+      }else if(piece&&piece[0]===myColor){chessSelected=idx;renderChess(state,gameRef,body);}
+      else{chessSelected=null;renderChess(state,gameRef,body);}
     });
     boardEl.appendChild(sq);
   });
   body.appendChild(boardEl);
 }
-function getChessMoves(board,idx,state){
+function getChessMoves(board,idx){
   const piece=board[idx];if(!piece)return[];
   const moves=[];const color=piece[0];const type=piece[1];
-  const row=Math.floor(idx/8);const col=idx%8;
-  const opp=color==="w"?"b":"w";
+  const row=Math.floor(idx/8);const col=idx%8;const opp=color==="w"?"b":"w";
   const add=(r,c)=>{if(r<0||r>7||c<0||c>7)return false;const i2=r*8+c;if(board[i2]&&board[i2][0]===color)return false;moves.push(i2);return!board[i2];};
-  if(type==="P"){
-    const dir=color==="w"?-1:1;const sr=color==="w"?6:1;
-    if(!board[(row+dir)*8+col]){moves.push((row+dir)*8+col);if(row===sr&&!board[(row+dir*2)*8+col])moves.push((row+dir*2)*8+col);}
-    [[dir,1],[dir,-1]].forEach(([dr,dc])=>{const nr=row+dr;const nc=col+dc;if(nr>=0&&nr<8&&nc>=0&&nc<8&&board[nr*8+nc]&&board[nr*8+nc][0]===opp)moves.push(nr*8+nc);});
-  }
-  if(type==="R"||type==="Q"){[[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{let r=row+dr;let c=col+dc;while(add(r,c)){r+=dr;c+=dc;}});}
-  if(type==="B"||type==="Q"){[[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>{let r=row+dr;let c=col+dc;while(add(r,c)){r+=dr;c+=dc;}});}
-  if(type==="N"){[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>add(row+dr,col+dc));}
-  if(type==="K"){[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr,dc])=>add(row+dr,col+dc));}
+  if(type==="P"){const dir=color==="w"?-1:1;const sr=color==="w"?6:1;
+    if(row+dir>=0&&row+dir<8&&!board[(row+dir)*8+col]){moves.push((row+dir)*8+col);if(row===sr&&!board[(row+dir*2)*8+col])moves.push((row+dir*2)*8+col);}
+    [[dir,1],[dir,-1]].forEach(([dr,dc])=>{const nr=row+dr;const nc=col+dc;if(nr>=0&&nr<8&&nc>=0&&nc<8&&board[nr*8+nc]&&board[nr*8+nc][0]===opp)moves.push(nr*8+nc);});}
+  if(type==="R"||type==="Q")[[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{let r=row+dr;let c=col+dc;while(add(r,c)){r+=dr;c+=dc;}});
+  if(type==="B"||type==="Q")[[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dr,dc])=>{let r=row+dr;let c=col+dc;while(add(r,c)){r+=dr;c+=dc;}});
+  if(type==="N")[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>add(row+dr,col+dc));
+  if(type==="K")[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr,dc])=>add(row+dr,col+dc));
   return moves;
 }
 
-// ---- SNAKE ----
+// Snake — solo game, anyone can play
 let snakeInterval=null;
 function renderSnake(state,gameRef,body){
-  const W=20,H=20,SZ=16;
-  const isPlayer=state.player1===myUsername;
-  if(!isPlayer&&state.player2!==myUsername){
-    const w=document.createElement("div");w.className="game-status";w.textContent="Watch mode — spectating";body.appendChild(w);
-  }
-  const scoreDiv=document.createElement("div");scoreDiv.className="game-turn";
-  scoreDiv.textContent=`Score: ${state.score||0}`;body.appendChild(scoreDiv);
-  const canvas=document.createElement("canvas");canvas.id="snake-canvas";canvas.width=W*SZ;canvas.height=H*SZ;body.appendChild(canvas);
+  const W=20,H=20,SZ=15;
+  const scoreDiv=document.createElement("div");scoreDiv.className="game-turn";scoreDiv.textContent="Score: 0";body.appendChild(scoreDiv);
+  const canvas=document.createElement("canvas");canvas.width=W*SZ;canvas.height=H*SZ;canvas.style.cssText="border-radius:8px;display:block;margin:0 auto;";body.appendChild(canvas);
   const ctx=canvas.getContext("2d");
-  let snake=[[10,10],[9,10],[8,10]];let dir=[1,0];let food=[5,5];let score=0;let running=true;
-  function placeFood(){food=[Math.floor(Math.random()*W),Math.floor(Math.random()*H)];}
-  function draw(){
+  let snake=[[10,10],[9,10],[8,10]];let dir=[1,0];let food=[15,10];let score=0;let running=true;
+  const draw=()=>{
     ctx.fillStyle="#0a0a0a";ctx.fillRect(0,0,W*SZ,H*SZ);
-    ctx.fillStyle="#dc143c";snake.forEach(([x,y])=>{ctx.fillRect(x*SZ+1,y*SZ+1,SZ-2,SZ-2);});
+    ctx.fillStyle="#dc143c";snake.forEach(([x,y])=>ctx.fillRect(x*SZ+1,y*SZ+1,SZ-2,SZ-2));
     ctx.fillStyle="#22c55e";ctx.fillRect(food[0]*SZ+1,food[1]*SZ+1,SZ-2,SZ-2);
     scoreDiv.textContent=`Score: ${score}`;
-  }
-  function step(){
+  };
+  const step=()=>{
     if(!running)return;
     const head=[snake[0][0]+dir[0],snake[0][1]+dir[1]];
     if(head[0]<0||head[0]>=W||head[1]<0||head[1]>=H||snake.some(([x,y])=>x===head[0]&&y===head[1])){
       running=false;clearInterval(snakeInterval);
-      ctx.fillStyle="rgba(0,0,0,0.6)";ctx.fillRect(0,0,W*SZ,H*SZ);
-      ctx.fillStyle="#f0f0f0";ctx.font="bold 18px sans-serif";ctx.textAlign="center";ctx.fillText("Game Over!",W*SZ/2,H*SZ/2);
-      ctx.font="14px sans-serif";ctx.fillText(`Score: ${score}`,W*SZ/2,H*SZ/2+24);
+      ctx.fillStyle="rgba(0,0,0,0.65)";ctx.fillRect(0,0,W*SZ,H*SZ);
+      ctx.fillStyle="#fff";ctx.font="bold 16px sans-serif";ctx.textAlign="center";
+      ctx.fillText("Game Over!",W*SZ/2,H*SZ/2);ctx.font="13px sans-serif";ctx.fillText(`Score: ${score}`,W*SZ/2,H*SZ/2+22);
       return;
     }
     snake.unshift(head);
-    if(head[0]===food[0]&&head[1]===food[1]){score++;placeFood();}
+    if(head[0]===food[0]&&head[1]===food[1]){score++;food=[Math.floor(Math.random()*W),Math.floor(Math.random()*H)];}
     else snake.pop();
     draw();
-  }
-  document.addEventListener("keydown",function snakeKeys(e){
-    if(!running){document.removeEventListener("keydown",snakeKeys);return;}
-    if(e.key==="ArrowUp"&&dir[1]!==1)dir=[ 0,-1];
-    else if(e.key==="ArrowDown"&&dir[1]!==-1)dir=[ 0, 1];
-    else if(e.key==="ArrowLeft"&&dir[0]!==1)dir=[-1, 0];
-    else if(e.key==="ArrowRight"&&dir[0]!==-1)dir=[ 1, 0];
-  });
-  // Mobile controls
-  const mc=document.createElement("div");mc.style.cssText="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:120px;margin:8px auto 0";
-  [["",""," "],["←","▼","→"]].flat();
-  const dirs=[["",null],["▲",[0,-1]],["",null],["◀",[-1,0]],["▼",[0,1]],["▶",[1,0]]];
-  dirs.forEach(([label,d])=>{
+  };
+  const keyHandler=e=>{
+    const map={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
+    if(map[e.key]){e.preventDefault();const nd=map[e.key];if(nd[0]!==-dir[0]||nd[1]!==-dir[1])dir=nd;}
+  };
+  document.addEventListener("keydown",keyHandler);
+  // Mobile buttons
+  const mc=document.createElement("div");mc.style.cssText="display:grid;grid-template-columns:repeat(3,36px);grid-template-rows:repeat(2,36px);gap:4px;margin:8px auto 0;width:fit-content;";
+  [{label:"",col:1,row:1,d:null},{label:"▲",col:2,row:1,d:[0,-1]},{label:"",col:3,row:1,d:null},{label:"◀",col:1,row:2,d:[-1,0]},{label:"▼",col:2,row:2,d:[0,1]},{label:"▶",col:3,row:2,d:[1,0]}].forEach(({label,d})=>{
     const btn=document.createElement("button");btn.textContent=label;
-    btn.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;color:#f0f0f0;padding:8px;cursor:pointer;font-size:14px;";
-    if(d)btn.addEventListener("click",()=>{if(running&&(d[0]!==dir[0]||d[1]!==dir[1]))dir=d;});
+    btn.style.cssText="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;color:#f0f0f0;font-size:14px;cursor:pointer;width:36px;height:36px;";
+    if(d)btn.addEventListener("click",()=>{if(running&&(d[0]!==-dir[0]||d[1]!==-dir[1]))dir=d;});
     mc.appendChild(btn);
   });
   body.appendChild(mc);
-  placeFood();draw();
+  // Clean up old interval
   if(snakeInterval)clearInterval(snakeInterval);
-  snakeInterval=setInterval(step,120);
+  draw();
+  snakeInterval=setInterval(step,130);
+  // Cleanup on modal close
+  const origClose=window.closeGameModal;
+  window.closeGameModal=()=>{document.removeEventListener("keydown",keyHandler);origClose();};
 }
 
-// ---- BATTLESHIP ----
+// Battleship
 function generateBattleshipBoard(){
   const grid=Array(100).fill(0);
-  const ships=[5,4,3,3,2];
-  ships.forEach(len=>{
+  [5,4,3,3,2].forEach(len=>{
     let placed=false;
     while(!placed){
-      const horiz=Math.random()>0.5;
-      const r=Math.floor(Math.random()*(horiz?10:11-len));
-      const c=Math.floor(Math.random()*(horiz?11-len:10));
-      let ok=true;
-      for(let i=0;i<len;i++){const idx=horiz?(r*10+c+i):((r+i)*10+c);if(grid[idx])ok=false;}
-      if(ok){for(let i=0;i<len;i++){const idx=horiz?(r*10+c+i):((r+i)*10+c);grid[idx]=1;}placed=true;}
+      const h=Math.random()>0.5;const r=Math.floor(Math.random()*(h?10:11-len));const c=Math.floor(Math.random()*(h?11-len:10));
+      let ok=true;for(let i=0;i<len;i++){if(grid[h?(r*10+c+i):((r+i)*10+c)])ok=false;}
+      if(ok){for(let i=0;i<len;i++)grid[h?(r*10+c+i):((r+i)*10+c)]=1;placed=true;}
     }
   });
   return grid;
 }
 function renderBattleship(state,gameRef,body){
-  const isP1=state.player1===myUsername;const isP2=state.player2===myUsername;
-  const status=document.createElement("div");status.className="game-status";
-  if(state.status==="waiting"||state.phase==="setup")status.textContent=isP1||isP2?"Your ships are placed. Waiting for opponent…":"Waiting for players…";
-  else if(state.status==="win")status.textContent=`🎉 ${state.winner} wins!`;
-  else status.textContent=`${state.turn}'s turn to shoot`;
-  body.appendChild(status);
-  if(!state.p2ships&&isP2){
+  const role=myRole(state);
+  const statusEl=document.createElement("div");statusEl.className="game-status";
+  // p2 joins and places ships
+  if(role==="p2"&&!state.p2ships){
+    statusEl.textContent="Placing your ships…";body.appendChild(statusEl);
     const ships=generateBattleshipBoard();
     set(ref(db,`games/${activeGameMsgId}/p2ships`),ships);
-    set(ref(db,`games/${activeGameMsgId}/phase`),"playing");
     set(ref(db,`games/${activeGameMsgId}/status`),"playing");
     return;
   }
-  if(!state.p2ships){status.textContent="Waiting for opponent to place ships…";return;}
-  const myShips=isP1?state.p1ships:state.p2ships;
-  const oppShips=isP1?state.p2ships:state.p1ships;
-  const myShots=isP1?(state.p1shots||[]):(state.p2shots||[]);
-  const oppShots=isP1?(state.p2shots||[]):(state.p1shots||[]);
+  if(state.status==="waiting"||!state.p2ships){statusEl.textContent="Waiting for opponent to place ships…";body.appendChild(statusEl);return;}
+  if(state.status==="win")statusEl.textContent=`🎉 ${state.winner} wins!`;
+  else statusEl.textContent=isMyTurn(state)?"Your turn to shoot":`${state.turn}'s turn`;
+  body.appendChild(statusEl);
+  const myShips=role==="p1"?state.p1ships:state.p2ships||[];
+  const oppShips=role==="p1"?state.p2ships||[]:state.p1ships;
+  const myShots=role==="p1"?(state.p1shots||[]):(state.p2shots||[]);
+  const oppShots=role==="p1"?(state.p2shots||[]):(state.p1shots||[]);
   const wrap=document.createElement("div");wrap.className="bs-grids";
   // My board
   const myWrap=document.createElement("div");
-  const myLabel=document.createElement("div");myLabel.className="bs-label";myLabel.textContent="Your board";
-  myWrap.appendChild(myLabel);
+  myWrap.innerHTML='<div class="bs-label">Your board</div>';
   const myGrid=document.createElement("div");myGrid.className="bs-grid";
   for(let i=0;i<100;i++){
-    const cell=document.createElement("div");cell.className="bs-cell";
-    if(myShips[i])cell.classList.add("ship");
-    if(oppShots.includes(i))cell.classList.add(myShips[i]?"hit":"miss");
-    myGrid.appendChild(cell);
+    const c=document.createElement("div");c.className="bs-cell"+(myShips[i]?" ship":"")+(oppShots.includes(i)?(myShips[i]?" hit":" miss"):"");
+    myGrid.appendChild(c);
   }
   myWrap.appendChild(myGrid);wrap.appendChild(myWrap);
   // Enemy board
   const oppWrap=document.createElement("div");
-  const oppLabel=document.createElement("div");oppLabel.className="bs-label";oppLabel.textContent="Enemy board";
-  oppWrap.appendChild(oppLabel);
+  oppWrap.innerHTML='<div class="bs-label">Enemy board</div>';
   const oppGrid=document.createElement("div");oppGrid.className="bs-grid";
-  const canShoot=(isP1||isP2)&&state.turn===myUsername&&state.status==="playing";
+  const canShoot=role&&isMyTurn(state);
   for(let i=0;i<100;i++){
-    const cell=document.createElement("div");cell.className="bs-cell";
-    if(myShots.includes(i))cell.classList.add(oppShips[i]?"hit":"miss");
+    const c=document.createElement("div");
+    c.className="bs-cell"+(myShots.includes(i)?(oppShips[i]?" hit":" miss"):"");
     if(canShoot&&!myShots.includes(i)){
-      cell.addEventListener("click",()=>{
+      c.addEventListener("click",()=>{
         const ns=[...myShots,i];
-        const hitCount=ns.filter(s=>oppShips[s]).length;
-        const win=hitCount>=17;
-        const update={};
-        update[isP1?"p1shots":"p2shots"]=ns;
-        update.turn=isP1?state.player2:state.player1;
-        if(win){update.status="win";update.winner=myUsername;}
-        set(gameRef,{...state,...update});
+        const hits=ns.filter(s=>oppShips[s]).length;
+        const win=hits>=17;
+        const upd={};
+        upd[role==="p1"?"p1shots":"p2shots"]=ns;
+        upd.turn=otherPlayer(state);
+        if(win){upd.status="win";upd.winner=myUsername;}
+        set(gameRef,{...state,...upd});
       });
     }
-    oppGrid.appendChild(cell);
+    oppGrid.appendChild(c);
   }
   oppWrap.appendChild(oppGrid);wrap.appendChild(oppWrap);body.appendChild(wrap);
 }
