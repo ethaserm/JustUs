@@ -115,7 +115,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* GAME MODAL */
 #game-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;z-index:400;}
 #game-modal.open{display:flex;}
-#game-modal-inner{background:#111;border:1px solid #222;border-radius:18px;padding:22px;min-width:300px;max-width:95vw;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;position:relative;}
+#game-modal-inner{background:#111;border:1px solid #222;border-radius:18px;min-width:300px;max-width:95vw;max-height:90vh;display:flex;flex-direction:row;position:relative;overflow:hidden;}
+/* IN-GAME CHAT */
+#game-modal-inner{flex-direction:row;gap:0;padding:0;min-width:520px;max-width:95vw;}
+#game-modal-left{flex:1;padding:22px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-width:280px;}
+#game-chat-panel{width:200px;border-left:1px solid #222;display:flex;flex-direction:column;background:#0d0d0d;border-radius:0 18px 18px 0;}
+#game-chat-header{padding:12px 14px;border-bottom:1px solid #1e1e1e;font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.06em;}
+#game-chat-msgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px;}
+#game-chat-msgs::-webkit-scrollbar{width:3px;}
+#game-chat-msgs::-webkit-scrollbar-thumb{background:#222;border-radius:4px;}
+.gchat-msg{font-size:12px;line-height:1.4;word-break:break-word;}
+.gchat-msg .gchat-name{font-weight:700;color:var(--accent);margin-right:4px;}
+.gchat-msg.me .gchat-name{color:#888;}
+#game-chat-input-row{display:flex;gap:4px;padding:8px;border-top:1px solid #1e1e1e;}
+#game-chat-inp{flex:1;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;color:#f0f0f0;font-size:12px;padding:6px 10px;outline:none;}
+#game-chat-inp:focus{border-color:var(--accent);}
+#game-chat-send{background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:14px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#game-chat-send:hover{background:var(--accent-dark);}
+#game-close-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:#555;font-size:20px;cursor:pointer;z-index:10;}
+
 #game-close-btn{position:absolute;top:14px;right:14px;background:none;border:none;color:#555;font-size:20px;cursor:pointer;}
 #game-close-btn:hover{color:#f0f0f0;}
 #game-modal-title{font-size:16px;font-weight:700;padding-right:24px;}
@@ -375,7 +393,7 @@ body{background:var(--bg);color:var(--text);}
 <body>
 <script>
 const FIREBASE_CONFIG={apiKey:"AIzaSyD_lb5_UyY2K2DQ3AOCopHcs1p4Kp_21vY",authDomain:"justus-d8e38.firebaseapp.com",databaseURL:"https://justus-d8e38-default-rtdb.firebaseio.com",projectId:"justus-d8e38",storageBucket:"justus-d8e38.firebasestorage.app",messagingSenderId:"422645809706",appId:"1:422645809706:web:d7c26471bd3f0b0e08b953"};
-const ROOMS=[{id:"general",name:"General",icon:"💬"},{id:"gaming",name:"Gaming",icon:"🎮"},{id:"random",name:"Random",icon:"🎲"},{id:"music",name:"Music",icon:"🎵"},{id:"movies",name:"Movies",icon:"🎬"}];
+const ROOMS=[{id:"general",name:"General",icon:"💬"},{id:"gaming",name:"Gaming",icon:"🎮"},{id:"random",name:"Random",icon:"🎲"},{id:"music",name:"Music",icon:"🎵"},{id:"movies",name:"Movies",icon:"🎬"},{id:"announcements",name:"Announcements",icon:"📢",adminOnly:"ethan"}];
 const EMOJIS=["😀","😂","😍","🥹","😎","🤔","😭","🔥","💀","👀","🙏","👏","💯","🎉","❤️","🫡","✅","😤","💤","🤝","😏","🥶","🤯","👋","⚡"];
 const GAMES=[{id:"ttt",name:"Tic Tac Toe",icon:"⭕",desc:"2 players • Classic"},{id:"c4",name:"Connect 4",icon:"🔴",desc:"2 players • Drop discs"},{id:"rps",name:"Rock Paper Scissors",icon:"✊",desc:"2 players • Best of 3"},{id:"wordle",name:"Wordle",icon:"🟩",desc:"1-2 players • Guess word"},{id:"hangman",name:"Hangman",icon:"🪢",desc:"2 players • Guess letters"},{id:"chess",name:"Chess",icon:"♟️",desc:"2 players • Full game"},{id:"snake",name:"Snake",icon:"🐍",desc:"1 player • High score"},{id:"battleship",name:"Battleship",icon:"🚢",desc:"2 players • Sink ships"}];
 const IMGBB_KEY="0fedaba33b0fca5eec75f16568047712";
@@ -467,8 +485,18 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
 <div id="game-modal">
   <div id="game-modal-inner">
     <button id="game-close-btn" onclick="closeGameModal()">✕</button>
-    <div id="game-modal-title"></div>
-    <div id="game-modal-body"></div>
+    <div id="game-modal-left">
+      <div id="game-modal-title"></div>
+      <div id="game-modal-body"></div>
+    </div>
+    <div id="game-chat-panel">
+      <div id="game-chat-header">💬 Game Chat</div>
+      <div id="game-chat-msgs"></div>
+      <div id="game-chat-input-row">
+        <input id="game-chat-inp" placeholder="Say something…" maxlength="100" autocomplete="off"/>
+        <button id="game-chat-send">➤</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -657,7 +685,9 @@ function buildRoomList(){
 function openRoom(roomId){
   const room=ROOMS.find(r=>r.id===roomId);
   setActiveChat(`room-${roomId}`,room.icon,`#${room.name}`,"room",roomId);
-  clearBadge(`unread-room-${roomId}`);loadMessages(`rooms/${roomId}`);
+  clearBadge(`unread-room-${roomId}`);
+  currentDisappearSetting=null;
+  loadMessages(`rooms/${roomId}`);
 }
 
 // ---- DM LIST ----
@@ -682,7 +712,10 @@ function renderDmList(){
 }
 function openDm(dmId,name){
   setActiveChat(`dm-${dmId}`,"👤",name,"dm",dmId);
-  clearBadge(`unread-dm-${dmId}`);loadMessages(`dms/${dmId}/messages`);
+  clearBadge(`unread-dm-${dmId}`);
+  watchDisappearing(dmId);
+  loadMessages(`dms/${dmId}/messages`);
+  setTimeout(()=>sweepExpired(`dms/${dmId}/messages`),500);
 }
 
 // ---- CHAT CORE ----
@@ -696,7 +729,24 @@ function setActiveChat(elId,icon,name,type,id){
   document.getElementById("welcome").style.display="none";
   document.getElementById("messages").style.display="flex";
   document.getElementById("typing-indicator").style.display="block";
-  document.getElementById("input-bar").style.display="flex";
+  // Check if admin-only room
+  const room=ROOMS.find(r=>r.id===id);
+  if(room?.adminOnly&&myUsername!==room.adminOnly){
+    document.getElementById("input-bar").style.display="none";
+    // Show read-only bar
+    let roBar=document.getElementById("readonly-bar");
+    if(!roBar){
+      roBar=document.createElement("div");roBar.id="readonly-bar";
+      roBar.style.cssText="padding:12px 18px;background:var(--bg2);border-top:1px solid var(--border);text-align:center;font-size:13px;color:var(--text3);flex-shrink:0;";
+      roBar.textContent="📢 Only admins can post here";
+      document.getElementById("main").appendChild(roBar);
+    }
+    roBar.style.display="block";
+  } else {
+    document.getElementById("input-bar").style.display="flex";
+    const roBar=document.getElementById("readonly-bar");
+    if(roBar)roBar.style.display="none";
+  }
 }
 function clearBadge(id){const b=document.getElementById(id);if(b)b.style.display="none";}
 
@@ -721,11 +771,17 @@ function loadMessages(msgPath){
       });
     }
   });
-  onValue(ref(db,`typing/${currentChatType}_${currentChatId}`),snap=>{
-    const val=snap.val()||{};
-    const others=Object.keys(val).filter(n=>n!==myUsername);
-    document.getElementById("typing-indicator").textContent=others.length?`${others.join(", ")} ${others.length===1?"is":"are"} typing…`:"";
-  });
+  // Only show typing indicator in 1-on-1 DMs
+  const isOnOneDm=currentChatType==="dm"&&myDms[currentChatId]&&Object.keys(myDms[currentChatId].members||{}).length===2;
+  if(isOnOneDm){
+    onValue(ref(db,`typing/${currentChatType}_${currentChatId}`),snap=>{
+      const val=snap.val()||{};
+      const others=Object.keys(val).filter(n=>n!==myUsername);
+      document.getElementById("typing-indicator").textContent=others.length?`${others[0]} is typing…`:"";
+    });
+  } else {
+    document.getElementById("typing-indicator").textContent="";
+  }
 }
 
 function renderMsg(id,msg){
@@ -931,6 +987,9 @@ function getMsgPath(){return currentChatType==="room"?`rooms/${currentChatId}`:`
 function sendMessage(){
   const input=document.getElementById("msg-input");const text=input.value.trim();
   if(!text||!myUsername||!currentChatId)return;
+  // Check if room is admin-only
+  const room=ROOMS.find(r=>r.id===currentChatId);
+  if(room?.adminOnly&&myUsername!==room.adminOnly)return;
   push(ref(db,getMsgPath()),{name:myUsername,text,timestamp:Date.now()});
   input.value="";input.style.height="auto";clearTyping();
 }
@@ -1124,6 +1183,10 @@ window.closeGameModal=()=>{
   activeGameId=null;activeGameMsgId=null;activeGameData=null;
   if(snakeInterval){clearInterval(snakeInterval);snakeInterval=null;}
   if(gameUIUnsub){gameUIUnsub();gameUIUnsub=null;}
+  if(gameChatUnsub){gameChatUnsub();gameChatUnsub=null;}
+  chessSelected=null;chessBoardEl=null;chessGameRef=null;chessStateCache=null;const old=document.getElementById('chess-board-el');if(old)old.remove();const olds=document.getElementById('chess-status');if(olds)olds.remove();
+  gameChatMsgs=[];
+  document.getElementById("game-chat-msgs").innerHTML="";
 };
 
 function openGameModal(gameId,msgId,msgData){
@@ -1182,6 +1245,9 @@ function initGameState(gameId,gameRef,existingState){
 
 // ---- GAME UIs ----
 let gameUIUnsub=null;
+let gameChatUnsub=null;
+let gameChatMsgs=[];
+
 function renderGameUI(gameId,gameRef,body){
   if(gameUIUnsub){gameUIUnsub();gameUIUnsub=null;}
   gameUIUnsub=onValue(gameRef,snap=>{
@@ -1197,6 +1263,49 @@ function renderGameUI(gameId,gameRef,body){
     else if(gameId==="chess")renderChess(state,gameRef,body);
     else if(gameId==="snake")renderSnake(state,gameRef,body);
     else if(gameId==="battleship")renderBattleship(state,gameRef,body);
+  });
+  initGameChat(gameRef);
+}
+
+function initGameChat(gameRef){
+  gameChatMsgs=[];
+  const msgsEl=document.getElementById("game-chat-msgs");msgsEl.innerHTML="";
+  const inp=document.getElementById("game-chat-inp");
+  const sendBtn=document.getElementById("game-chat-send");
+  const sendGameChat=()=>{
+    const text=inp.value.trim();if(!text)return;
+    // Store in Firebase temporarily under games/{id}/chat
+    push(ref(db,`${gameRef.toString().split('/').slice(-2).join('/')}/chat`),{
+      name:myUsername,text,ts:Date.now()
+    });
+    inp.value="";
+  };
+  // Remove old listeners by replacing elements
+  const newInp=inp.cloneNode(true);const newBtn=sendBtn.cloneNode(true);
+  inp.parentNode.replaceChild(newInp,inp);
+  sendBtn.parentNode.replaceChild(newBtn,sendBtn);
+  newInp.addEventListener("keydown",e=>{if(e.key==="Enter")sendGameChat();});
+  newBtn.addEventListener("click",sendGameChat);
+  // Listen for chat messages from Firebase (temp, auto-deleted after 1hr)
+  if(gameChatUnsub){gameChatUnsub();gameChatUnsub=null;}
+  const chatRef=ref(db,`${gameRef.toString().split('/').slice(-2).join('/')}/chat`);
+  gameChatUnsub=onValue(chatRef,snap=>{
+    const val=snap.val()||{};
+    const msgsEl2=document.getElementById("game-chat-msgs");if(!msgsEl2)return;
+    // Only add new messages
+    const keys=Object.keys(val);
+    const newKeys=keys.filter(k=>!gameChatMsgs.includes(k));
+    newKeys.forEach(k=>{
+      gameChatMsgs.push(k);
+      const msg=val[k];
+      const isMe=msg.name===myUsername;
+      const el=document.createElement("div");el.className=`gchat-msg${isMe?" me":""}`;
+      el.innerHTML=`<span class="gchat-name">${msg.name}</span>${msg.text.replace(/</g,"&lt;")}`;
+      msgsEl2.appendChild(el);
+      msgsEl2.scrollTop=msgsEl2.scrollHeight;
+      // Auto delete after 1 hour
+      setTimeout(()=>remove(ref(db,`${gameRef.toString().split('/').slice(-2).join('/')}/chat/${k}`)),3600000);
+    });
   });
 }
 
@@ -1419,41 +1528,88 @@ function initChessBoard(){
   return b;
 }
 let chessSelected=null;
+let chessBoardEl=null;
+
+// Chess state refs — kept outside render so they persist across Firebase updates
+let chessGameRef=null;
+let chessStateCache=null;
+let chessCanMove=false;
+let chessMyColor=null;
+
 function renderChess(state,gameRef,body){
   const role=myRole(state);
-  const myColor=role==="p1"?"w":role==="p2"?"b":null;
+  chessMyColor=role==="p1"?"w":role==="p2"?"b":null;
   const turn=state.turn||"white";
-  const myTurnColor=myColor==="w"?"white":"black";
-  const canMove=myColor&&turn===myTurnColor&&state.status==="playing";
-  const statusEl=document.createElement("div");statusEl.className="game-status";
+  chessCanMove=chessMyColor&&turn===(chessMyColor==="w"?"white":"black")&&state.status==="playing";
+  chessGameRef=gameRef;
+  chessStateCache=state;
+  const board=state.board||initChessBoard();
+
+  // Status — update in place
+  let statusEl=document.getElementById("chess-status");
+  if(!statusEl){
+    statusEl=document.createElement("div");statusEl.id="chess-status";statusEl.className="game-status";
+    body.appendChild(statusEl);
+  }
   if(state.status==="waiting"||!state.player2)statusEl.textContent="Waiting for opponent…";
   else if(state.status==="checkmate")statusEl.textContent=`Checkmate! ${state.winner} wins!`;
-  else statusEl.textContent=canMove?"Your turn":`${otherPlayer(state)}'s turn`;
-  body.appendChild(statusEl);
-  const boardEl=document.createElement("div");boardEl.className="chess-board";
-  const board=state.board||initChessBoard();
-  const possible=chessSelected!==null?getChessMoves(board,chessSelected):[];
-  board.forEach((piece,idx)=>{
-    const row=Math.floor(idx/8);const col=idx%8;
-    const sq=document.createElement("div");sq.className=`chess-sq ${(row+col)%2===0?"light":"dark"}`;
-    if(chessSelected===idx)sq.classList.add("sel");
-    if(possible.includes(idx))sq.classList.add("possible");
-    if(piece)sq.textContent=CHESS_PIECES[piece]||"";
-    sq.addEventListener("click",()=>{
-      if(!canMove)return;
-      if(chessSelected===null){
-        if(piece&&piece[0]===myColor){chessSelected=idx;renderChess(state,gameRef,body);}
-      }else if(possible.includes(idx)){
-        const nb=[...board];nb[idx]=nb[chessSelected];nb[chessSelected]=null;
-        chessSelected=null;
-        set(gameRef,{...state,board:nb,turn:turn==="white"?"black":"white"});
-      }else if(piece&&piece[0]===myColor){chessSelected=idx;renderChess(state,gameRef,body);}
-      else{chessSelected=null;renderChess(state,gameRef,body);}
-    });
-    boardEl.appendChild(sq);
-  });
-  body.appendChild(boardEl);
+  else statusEl.textContent=chessCanMove?"Your turn":`${otherPlayer(state)}'s turn`;
+
+  // Board — create once, never recreate
+  let boardEl=document.getElementById("chess-board-el");
+  if(!boardEl){
+    boardEl=document.createElement("div");boardEl.id="chess-board-el";
+    boardEl.style.cssText="display:grid;grid-template-columns:repeat(8,40px);grid-template-rows:repeat(8,40px);border:2px solid #555;border-radius:4px;overflow:hidden;margin:0 auto;";
+    for(let i=0;i<64;i++){
+      const sq=document.createElement("div");
+      sq.style.cssText="width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;user-select:none;";
+      sq.dataset.idx=i;
+      boardEl.appendChild(sq);
+    }
+    boardEl.addEventListener("click",handleChessClick);
+    body.appendChild(boardEl);
+  }
+  updateChessBoard(board,chessSelected,chessSelected!==null?getChessMoves(board,chessSelected):[]);
 }
+
+function handleChessClick(e){
+  const sq=e.target.closest("[data-idx]");if(!sq)return;
+  const idx=parseInt(sq.dataset.idx);
+  if(!chessCanMove||!chessStateCache)return;
+  const board=chessStateCache.board||initChessBoard();
+  const possible=chessSelected!==null?getChessMoves(board,chessSelected):[];
+  if(chessSelected===null){
+    if(board[idx]&&board[idx][0]===chessMyColor){
+      chessSelected=idx;updateChessBoard(board,idx,getChessMoves(board,idx));
+    }
+  } else if(possible.includes(idx)){
+    const nb=[...board];nb[idx]=nb[chessSelected];nb[chessSelected]=null;
+    const prevSel=chessSelected;chessSelected=null;
+    const turn=chessStateCache.turn||"white";
+    set(chessGameRef,{...chessStateCache,board:nb,turn:turn==="white"?"black":"white",status:"playing"});
+  } else if(board[idx]&&board[idx][0]===chessMyColor){
+    chessSelected=idx;updateChessBoard(board,idx,getChessMoves(board,idx));
+  } else {
+    chessSelected=null;updateChessBoard(board,null,[]);
+  }
+}
+
+function updateChessBoard(board,selected,possible){
+  if(!chessBoardEl)return;
+  Array.from(chessBoardEl.children).forEach((sq,idx)=>{
+    const row=Math.floor(idx/8);const col=idx%8;
+    const isLight=(row+col)%2===0;
+    let bg=isLight?"#f0d9b5":"#b58863";
+    if(selected===idx)bg=isLight?"#f6f669":"#caca2c";
+    else if(possible&&possible.includes(idx))bg=isLight?"rgba(20,100,20,0.5)":"rgba(20,100,20,0.5)";
+    sq.style.background=bg;
+    const piece=board[idx];
+    sq.textContent=piece?(CHESS_PIECES[piece]||""):"";
+    sq.style.color=piece&&piece[0]==="w"?"#fff":"#111";
+    sq.style.textShadow=piece&&piece[0]==="w"?"0 0 2px #000,0 0 2px #000":"0 0 2px #fff,0 0 2px #fff";
+  });
+}
+
 function getChessMoves(board,idx){
   const piece=board[idx];if(!piece)return[];
   const moves=[];const color=piece[0];const type=piece[1];
@@ -1785,16 +1941,25 @@ document.getElementById("theme-modal").addEventListener("click",e=>{if(e.target=
 
 // ---- DISAPPEARING MESSAGES ----
 let disappearingTimers={};
+let currentDisappearSetting=null;
+
 function setDisappearing(chatId,chatType,minutes){
-  const path=chatType==="room"?`disappearing_rooms/${chatId}`:`disappearing_dms/${chatId}`;
-  if(minutes===0)remove(ref(db,path));
-  else set(ref(db,path),{minutes,setBy:myUsername,ts:Date.now()});
+  const path=`disappearing_dms/${chatId}`;
+  if(minutes===0){remove(ref(db,path));currentDisappearSetting=null;}
+  else{
+    const setting={minutes,setBy:myUsername,ts:Date.now()};
+    set(ref(db,path),setting);
+    currentDisappearSetting=setting;
+  }
 }
-async function getDisappearingTime(chatId,chatType){
-  const path=chatType==="room"?`disappearing_rooms/${chatId}`:`disappearing_dms/${chatId}`;
-  const snap=await get(ref(db,path));
-  return snap.val();
+
+function watchDisappearing(chatId){
+  currentDisappearSetting=null;
+  onValue(ref(db,`disappearing_dms/${chatId}`),snap=>{
+    currentDisappearSetting=snap.val()||null;
+  });
 }
+
 function scheduleDisappear(msgId,msgPath,delayMs){
   if(disappearingTimers[msgId])return;
   disappearingTimers[msgId]=setTimeout(()=>{
@@ -1802,14 +1967,30 @@ function scheduleDisappear(msgId,msgPath,delayMs){
     delete disappearingTimers[msgId];
   },delayMs);
 }
-async function checkDisappearing(msgId,msg,msgPath){
-  const setting=await getDisappearingTime(currentChatId,currentChatType);
-  if(!setting)return;
+
+function checkDisappearing(msgId,msg,msgPath){
+  if(!currentDisappearSetting)return;
   const elapsed=Date.now()-msg.timestamp;
-  const totalMs=setting.minutes*60*1000;
+  const totalMs=currentDisappearSetting.minutes*60*1000;
   const remaining=totalMs-elapsed;
-  if(remaining<=0){remove(ref(db,`${msgPath}/${msgId}`));}
-  else scheduleDisappear(msgId,msgPath,remaining);
+  if(remaining<=0){
+    remove(ref(db,`${msgPath}/${msgId}`));
+  } else {
+    scheduleDisappear(msgId,msgPath,remaining);
+  }
+}
+
+// On load, sweep all messages in current chat and delete expired ones
+function sweepExpired(msgPath){
+  if(!currentDisappearSetting)return;
+  const totalMs=currentDisappearSetting.minutes*60*1000;
+  get(ref(db,msgPath)).then(snap=>{
+    const val=snap.val()||{};
+    Object.entries(val).forEach(([id,msg])=>{
+      if(msg.system||msg.gameInvite||msg.poll)return;
+      if(Date.now()-msg.timestamp>=totalMs)remove(ref(db,`${msgPath}/${id}`));
+    });
+  });
 }
 
 // ---- PROFILE ----
