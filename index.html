@@ -1289,23 +1289,23 @@ function initGameChat(gameRef){
   const msgsEl=document.getElementById("game-chat-msgs");msgsEl.innerHTML="";
   const inp=document.getElementById("game-chat-inp");
   const sendBtn=document.getElementById("game-chat-send");
-  const sendGameChat=()=>{
-    const text=inp.value.trim();if(!text)return;
-    // Store in Firebase temporarily under games/{id}/chat
-    push(ref(db,`${gameRef.toString().split('/').slice(-2).join('/')}/chat`),{
-      name:myUsername,text,ts:Date.now()
-    });
-    inp.value="";
+  const chatPath=`games/${activeGameMsgId}/chat`;
+  const doSend=()=>{
+    const curInp=document.getElementById("game-chat-inp");
+    const text=curInp.value.trim();if(!text)return;
+    push(ref(db,chatPath),{name:myUsername,text,ts:Date.now()});
+    curInp.value="";
+    curInp.focus();
   };
   // Remove old listeners by replacing elements
   const newInp=inp.cloneNode(true);const newBtn=sendBtn.cloneNode(true);
   inp.parentNode.replaceChild(newInp,inp);
   sendBtn.parentNode.replaceChild(newBtn,sendBtn);
-  newInp.addEventListener("keydown",e=>{if(e.key==="Enter")sendGameChat();});
-  newBtn.addEventListener("click",sendGameChat);
+  newInp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();doSend();}});
+  newBtn.addEventListener("click",doSend);
   // Listen for chat messages from Firebase (temp, auto-deleted after 1hr)
   if(gameChatUnsub){gameChatUnsub();gameChatUnsub=null;}
-  const chatRef=ref(db,`${gameRef.toString().split('/').slice(-2).join('/')}/chat`);
+  const chatRef=ref(db,`games/${activeGameMsgId}/chat`);
   gameChatUnsub=onValue(chatRef,snap=>{
     const val=snap.val()||{};
     const msgsEl2=document.getElementById("game-chat-msgs");if(!msgsEl2)return;
@@ -1321,7 +1321,7 @@ function initGameChat(gameRef){
       msgsEl2.appendChild(el);
       msgsEl2.scrollTop=msgsEl2.scrollHeight;
       // Auto delete after 1 hour
-      setTimeout(()=>remove(ref(db,`${gameRef.toString().split('/').slice(-2).join('/')}/chat/${k}`)),3600000);
+      setTimeout(()=>remove(ref(db,`games/${activeGameMsgId}/chat/${k}`)),3600000);
     });
   });
 }
@@ -1592,22 +1592,30 @@ function renderChess(state,gameRef,body){
 function handleChessClick(e){
   const sq=e.target.closest("[data-idx]");if(!sq)return;
   const idx=parseInt(sq.dataset.idx);
-  if(!chessCanMove||!chessStateCache)return;
+  if(!chessStateCache)return;
+  // Recalculate canMove fresh each click
+  const role=myRole(chessStateCache);
+  const mc=role==="p1"?"w":role==="p2"?"b":null;
+  const turn=chessStateCache.turn||"white";
+  const canMove=mc&&turn===(mc==="w"?"white":"black")&&chessStateCache.status==="playing";
+  if(!canMove)return;
   const board=chessStateCache.board||initChessBoard();
   const possible=chessSelected!==null?getChessMoves(board,chessSelected):[];
   if(chessSelected===null){
-    if(board[idx]&&board[idx][0]===chessMyColor){
-      chessSelected=idx;updateChessBoard(board,idx,getChessMoves(board,idx));
+    if(board[idx]&&board[idx][0]===mc){
+      chessSelected=idx;
+      updateChessBoard(board,idx,getChessMoves(board,idx));
     }
   } else if(possible.includes(idx)){
     const nb=[...board];nb[idx]=nb[chessSelected];nb[chessSelected]=null;
-    const prevSel=chessSelected;chessSelected=null;
-    const turn=chessStateCache.turn||"white";
+    chessSelected=null;
     set(chessGameRef,{...chessStateCache,board:nb,turn:turn==="white"?"black":"white",status:"playing"});
-  } else if(board[idx]&&board[idx][0]===chessMyColor){
-    chessSelected=idx;updateChessBoard(board,idx,getChessMoves(board,idx));
+  } else if(board[idx]&&board[idx][0]===mc){
+    chessSelected=idx;
+    updateChessBoard(board,idx,getChessMoves(board,idx));
   } else {
-    chessSelected=null;updateChessBoard(board,null,[]);
+    chessSelected=null;
+    updateChessBoard(board,null,[]);
   }
 }
 
