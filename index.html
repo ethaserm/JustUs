@@ -584,11 +584,15 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
 </div>
 
 <script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{initializeApp,getApps,getApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getDatabase,ref,push,onValue,set,remove,onDisconnect,get}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import{getMessaging,getToken,onMessage}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
-let db,myUsername,currentChatId=null,currentChatType=null;
+// Init Firebase once at top level
+const _fbApp=getApps().length?getApp():initializeApp(FIREBASE_CONFIG);
+const db=getDatabase(_fbApp);
+
+let myUsername,currentChatId=null,currentChatType=null;
 let typingTimeout=null,notifTimeout=null,notifSound;
 let allUsers={},onlineUsers={},selectedDmUsers=new Set(),myDms={};
 let currentMsgUnsub=null;
@@ -608,8 +612,6 @@ window.handleAuth=async()=>{
   if(!user||!pass){errEl.textContent="Fill in both fields.";return;}
   if(user.length<2){errEl.textContent="Username too short.";return;}
   if(pass.length<4){errEl.textContent="Password too short (min 4).";return;}
-  const app=initializeApp(FIREBASE_CONFIG);
-  db=getDatabase(app);
   const userRef=ref(db,`users/${user}`);
   const snap=await get(userRef);
   if(isLogin){
@@ -1133,8 +1135,7 @@ async function setupPushNotifications(){
     const reg=await navigator.serviceWorker.register('/JustUs/firebase-messaging-sw.js');
     const perm=await Notification.requestPermission();
     if(perm!=="granted")return;
-    const app=initializeApp(FIREBASE_CONFIG);
-    const messaging=getMessaging(app);
+    const messaging=getMessaging(_fbApp);
     const token=await getToken(messaging,{
       vapidKey:"BInpeV7H3a9FtFe64v9GLSd1rEiuh12ZefFKFwPpGOUhAU2gxJjKlhZ3jhYdj9Om8ZeQ-uJl84WlkwqGnDtLEMM",
       serviceWorkerRegistration:reg
