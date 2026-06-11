@@ -210,8 +210,55 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .online-badge{width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;}
 .offline-badge{width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0;}
 .g-btn{background:#dc143c;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;}
-.g-btn:hover{background:#a50e2d;}
+.g-btn:hover{background:var(--accent-dark);}
 .g-btn:disabled{background:#2a2a2a;color:#555;cursor:not-allowed;}
+/* THEMES */
+:root{
+  --accent:#dc143c;--accent-dark:#a50e2d;--accent-bg:#1e0508;
+  --bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--bg4:#252525;
+  --border:#1e1e1e;--border2:#2a2a2a;--text:#f0f0f0;--text2:#888;--text3:#555;
+}
+body{background:var(--bg);color:var(--text);}
+#sidebar{background:var(--bg2);border-color:var(--border);}
+.sidebar-header{border-color:var(--border);}
+.room-item:hover{background:var(--bg3);}
+.room-item.active{background:var(--accent-bg);border-color:var(--accent);}
+#chat-header{background:var(--bg2);border-color:var(--border);}
+.me .bubble{background:var(--accent);}
+#input-bar{background:var(--bg2);border-color:var(--border);}
+#msg-input{background:var(--bg3);border-color:var(--border2);}
+#msg-input:focus{border-color:var(--accent);}
+#send-btn{background:var(--accent);}
+#send-btn:hover{background:var(--accent-dark);}
+.new-chat-btn{background:var(--accent);}
+.new-chat-btn:hover{background:var(--accent-dark);}
+.user-avatar{background:var(--accent);}
+.auth-tab.active{background:var(--accent);}
+.auth-input:focus{border-color:var(--accent);}
+.auth-btn{background:var(--accent);}
+.join-btn{background:var(--accent);}
+.g-btn{background:var(--accent);}
+.dm-start{background:var(--accent);}
+#notif strong{color:var(--accent);}
+.unread{background:var(--accent);}
+.reaction-badge.mine{border-color:var(--accent);}
+#sidebar-toggle{background:var(--bg3);border-color:var(--border2);}
+
+/* THEME MODAL */
+#theme-modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:350;}
+#theme-modal.open{display:flex;}
+.theme-box{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:24px;width:320px;display:flex;flex-direction:column;gap:16px;}
+.theme-box h3{font-size:15px;font-weight:700;}
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.theme-swatch{border-radius:12px;padding:12px 8px;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.theme-swatch:hover{border-color:#555;}
+.theme-swatch.selected{border-color:#f0f0f0;}
+.theme-preview{width:36px;height:36px;border-radius:50%;}
+.theme-name{font-size:11px;color:var(--text2);text-align:center;}
+
+/* DISAPPEARING badge */
+.disappearing-badge{font-size:11px;color:var(--text3);text-align:center;padding:4px 0;}
+
 /* PROFILE MODAL */
 #profile-modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:350;}
 #profile-modal.open{display:flex;}
@@ -336,6 +383,15 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
   </div>
 </div>
 
+<!-- THEME MODAL -->
+<div id="theme-modal">
+  <div class="theme-box">
+    <h3>🎨 Choose Theme</h3>
+    <div class="theme-grid" id="theme-grid"></div>
+    <button class="g-btn" onclick="document.getElementById('theme-modal').classList.remove('open')">Done</button>
+  </div>
+</div>
+
 <!-- PROFILE MODAL -->
 <div id="profile-modal">
   <div class="profile-box" id="profile-box"></div>
@@ -374,7 +430,7 @@ const REACT_EMOJIS=["❤️","😂","😮","😢","😡","👍","👎","🔥"];
     <div class="user-bar">
       <div class="user-avatar" id="user-avatar">?</div>
       <div class="user-bar-name" id="user-bar-name"></div>
-      <button class="logout-btn" onclick="logout()" title="Logout">⏏</button>
+      <button class="logout-btn" onclick="openThemeModal()" title="Themes" style="margin-right:4px">🎨</button><button class="logout-btn" onclick="logout()" title="Logout">⏏</button>
     </div>
   </div>
 
@@ -498,7 +554,7 @@ function startApp(){
       renderDmList();
     });
   });
-  buildRoomList();buildEmojiPicker();buildGamePicker();setupInputHandlers();
+  buildRoomList();buildEmojiPicker();buildGamePicker();setupInputHandlers();buildThemePicker();
 }
 window.logout=()=>{if(myUsername)remove(ref(db,`online/${myUsername}`));location.reload();};
 
@@ -510,7 +566,12 @@ function renderOnlineList(){
   users.forEach(u=>{
     const el=document.createElement("div");el.className="online-item";
     const sCls=u.status==="busy"?"status-busy":u.status==="dnd"?"status-dnd":u.status==="invisible"?"status-invisible":"status-online";
-    el.innerHTML=`<div class="online-dot ${sCls}" style="background:none;width:8px;height:8px;border-radius:50%;flex-shrink:0"></div><div style="flex:1">${u.name}</div>${u.name===myUsername?'<span class="online-you">you</span>':''}`;
+    const odot=document.createElement("div");odot.style.cssText=`background:none;width:8px;height:8px;border-radius:50%;flex-shrink:0;`;odot.className=sCls;
+    const oname=document.createElement("div");oname.style.cssText="flex:1;cursor:pointer;";oname.textContent=u.name;
+    if(u.name!==myUsername)oname.addEventListener("click",()=>viewProfile(u.name));
+    else oname.addEventListener("click",openProfileModal);
+    el.appendChild(odot);el.appendChild(oname);
+    if(u.name===myUsername){const you=document.createElement("span");you.className="online-you";you.textContent="you";el.appendChild(you);}
     list.appendChild(el);
   });
 }
@@ -610,7 +671,7 @@ function renderMsg(id,msg){
   const wrapper=document.createElement("div");
   wrapper.className=`msg-wrapper ${isMe?"me":"them"}`;wrapper.dataset.id=id;
   const ts=new Date(msg.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-  if(!isMe)wrapper.innerHTML+=`<div class="sender-name">${msg.name}</div>`;
+  if(!isMe){const sn=document.createElement("div");sn.className="sender-name";sn.textContent=msg.name;sn.style.cursor="pointer";sn.addEventListener("click",()=>viewProfile(msg.name));wrapper.appendChild(sn);}
 
   // Message actions bar (hover)
   if(!msg.uploading&&!msg.gifUrl){
@@ -677,6 +738,8 @@ function renderMsg(id,msg){
   container.appendChild(wrapper);container.scrollTop=container.scrollHeight;
   // Mark as read
   if(!isMe&&!msg.uploading)set(ref(db,`${getMsgPath()}/${id}/readBy/${myUsername}`),true);
+  // Schedule disappear if needed
+  if(!msg.uploading&&!msg.system&&!msg.gameInvite)checkDisappearing(id,msg,getMsgPath());
 }
 
 function startEdit(id,msg,wrapper){
@@ -717,7 +780,7 @@ function renderGameCard(id,msg,container){
   const isMe=msg.name===myUsername;
   const wrapper=document.createElement("div");
   wrapper.className=`msg-wrapper ${isMe?"me":"them"}`;wrapper.dataset.id=id;
-  if(!isMe)wrapper.innerHTML+=`<div class="sender-name">${msg.name}</div>`;
+  if(!isMe){const sn=document.createElement("div");sn.className="sender-name";sn.textContent=msg.name;sn.style.cursor="pointer";sn.addEventListener("click",()=>viewProfile(msg.name));wrapper.appendChild(sn);}
   const game=GAMES.find(g=>g.id===msg.gameInvite);
   const card=document.createElement("div");card.className="game-card";
   card.innerHTML=`<div class="game-card-header"><span class="game-card-icon">${game.icon}</span><div><div class="game-card-title">${game.name}</div><div class="game-card-sub">${game.desc}</div></div></div><div class="game-card-host">Started by ${msg.name}</div>`;
@@ -894,7 +957,10 @@ function buildGamePicker(){
     el.addEventListener("click",()=>{
       if(!currentChatId)return;
       picker.classList.remove("open");
-      push(ref(db,getMsgPath()),{name:myUsername,gameInvite:g.id,text:`${myUsername} wants to play ${g.name}!`,timestamp:Date.now()});
+      push(ref(db,getMsgPath()),{name:myUsername,gameInvite:g.id,text:`${myUsername} wants to play ${g.name}!`,timestamp:Date.now()}).then(r=>{
+        // Host auto-opens the game
+        openGameModal(g.id,r.key,{name:myUsername,gameInvite:g.id,timestamp:Date.now()});
+      });
     });
     picker.appendChild(el);
   });
@@ -1076,7 +1142,7 @@ function renderRPS(state,gameRef,body){
   else statusEl.textContent="Make your choice!";
   body.appendChild(statusEl);
   const scoreEl=document.createElement("div");scoreEl.className="game-turn";
-  scoreEl.textContent=`${state.player1||"P1"}: ${state.p1score||0} — ${state.player2||"??"}: ${state.p2score||0} | Round ${state.round||1}/3`;
+  scoreEl.textContent=`${state.player1||"P1"}: ${state.p1score||0} — ${state.player2||"Waiting…"}: ${state.p2score||0} | Round ${state.round||1}/3`;
   body.appendChild(scoreEl);
   if(myChoice&&oppChoice){
     const rpsWin={rock:"scissors",paper:"rock",scissors:"paper"};
@@ -1402,6 +1468,89 @@ window.startDm=async()=>{
 
 
 
+
+// ---- THEMES ----
+const THEMES=[
+  {id:"crimson",name:"Crimson",accent:"#dc143c",dark:"#a50e2d",bg:"#1e0508",bg1:"#0a0a0a",bg2:"#111"},
+  {id:"ocean",name:"Ocean",accent:"#3b82f6",dark:"#1d4ed8",bg:"#0a1628",bg1:"#070d1a",bg2:"#0e1a2e"},
+  {id:"forest",name:"Forest",accent:"#22c55e",dark:"#15803d",bg:"#0a1a0e",bg1:"#060f08",bg2:"#0e1a10"},
+  {id:"purple",name:"Purple",accent:"#8b5cf6",dark:"#6d28d9",bg:"#130a28",bg1:"#0a0614",bg2:"#160c2e"},
+  {id:"gold",name:"Gold",accent:"#f59e0b",dark:"#d97706",bg:"#1a1200",bg1:"#0f0a00",bg2:"#1e1500"},
+  {id:"pink",name:"Pink",accent:"#ec4899",dark:"#be185d",bg:"#1a0a12",bg1:"#0f0609",bg2:"#1e0d16"},
+  {id:"teal",name:"Teal",accent:"#14b8a6",dark:"#0f766e",bg:"#041a18",bg1:"#020f0e",bg2:"#061e1c"},
+  {id:"orange",name:"Orange",accent:"#f97316",dark:"#c2410c",bg:"#1a0e04",bg1:"#0f0802",bg2:"#1e1005"},
+  {id:"white",name:"Light",accent:"#dc143c",dark:"#a50e2d",bg:"#f5f5f5",bg1:"#ffffff",bg2:"#eeeeee"},
+];
+
+function applyTheme(t){
+  const r=document.documentElement.style;
+  r.setProperty("--accent",t.accent);
+  r.setProperty("--accent-dark",t.dark);
+  r.setProperty("--accent-bg",t.bg);
+  r.setProperty("--bg",t.bg1);
+  r.setProperty("--bg2",t.bg2);
+  r.setProperty("--bg3",adjustBrightness(t.bg2,10));
+  r.setProperty("--border",adjustBrightness(t.bg2,8));
+  r.setProperty("--border2",adjustBrightness(t.bg2,15));
+  if(t.id==="white"){r.setProperty("--text","#111");r.setProperty("--text2","#444");r.setProperty("--text3","#888");}
+  else{r.setProperty("--text","#f0f0f0");r.setProperty("--text2","#888");r.setProperty("--text3","#555");}
+  localStorage.setItem("justus-theme",t.id);
+}
+function adjustBrightness(hex,amount){
+  const n=parseInt(hex.slice(1),16);
+  const r=Math.min(255,(n>>16)+amount);const g=Math.min(255,((n>>8)&0xff)+amount);const b=Math.min(255,(n&0xff)+amount);
+  return`#${((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}`;
+}
+function buildThemePicker(){
+  const grid=document.getElementById("theme-grid");if(!grid)return;
+  const saved=localStorage.getItem("justus-theme")||"crimson";
+  THEMES.forEach(t=>{
+    const sw=document.createElement("div");sw.className="theme-swatch"+(t.id===saved?" selected":"");
+    sw.innerHTML=`<div class="theme-preview" style="background:linear-gradient(135deg,${t.bg2},${t.accent})"></div><div class="theme-name">${t.name}</div>`;
+    sw.addEventListener("click",()=>{
+      applyTheme(t);
+      grid.querySelectorAll(".theme-swatch").forEach(s=>s.classList.remove("selected"));
+      sw.classList.add("selected");
+      if(myUsername)set(ref(db,`users/${myUsername}/theme`),t.id);
+    });
+    grid.appendChild(sw);
+  });
+  // Apply saved theme on load
+  const t=THEMES.find(x=>x.id===saved)||THEMES[0];
+  applyTheme(t);
+}
+window.openThemeModal=()=>document.getElementById("theme-modal").classList.add("open");
+document.getElementById("theme-modal").addEventListener("click",e=>{if(e.target===document.getElementById("theme-modal"))document.getElementById("theme-modal").classList.remove("open");});
+
+// ---- DISAPPEARING MESSAGES ----
+let disappearingTimers={};
+function setDisappearing(chatId,chatType,minutes){
+  const path=chatType==="room"?`disappearing_rooms/${chatId}`:`disappearing_dms/${chatId}`;
+  if(minutes===0)remove(ref(db,path));
+  else set(ref(db,path),{minutes,setBy:myUsername,ts:Date.now()});
+}
+async function getDisappearingTime(chatId,chatType){
+  const path=chatType==="room"?`disappearing_rooms/${chatId}`:`disappearing_dms/${chatId}`;
+  const snap=await get(ref(db,path));
+  return snap.val();
+}
+function scheduleDisappear(msgId,msgPath,delayMs){
+  if(disappearingTimers[msgId])return;
+  disappearingTimers[msgId]=setTimeout(()=>{
+    remove(ref(db,`${msgPath}/${msgId}`));
+    delete disappearingTimers[msgId];
+  },delayMs);
+}
+async function checkDisappearing(msgId,msg,msgPath){
+  const setting=await getDisappearingTime(currentChatId,currentChatType);
+  if(!setting)return;
+  const elapsed=Date.now()-msg.timestamp;
+  const totalMs=setting.minutes*60*1000;
+  const remaining=totalMs-elapsed;
+  if(remaining<=0){remove(ref(db,`${msgPath}/${msgId}`));}
+  else scheduleDisappear(msgId,msgPath,remaining);
+}
+
 // ---- PROFILE ----
 const STATUS_OPTIONS=[
   {key:"online",label:"Online",cls:"status-online"},
@@ -1418,6 +1567,51 @@ async function openProfileModal(){
   const data=snap.val()||{};
   renderProfileView(data,false);
   document.getElementById("profile-modal").classList.add("open");
+}
+
+async function viewProfile(username){
+  const snap=await get(ref(db,`users/${username}`));
+  const data=snap.val()||{};
+  const box=document.getElementById("profile-box");box.innerHTML="";
+  const colour=data.colour||"#dc143c";
+  const status=data.status||"online";
+  const displayName=data.displayName||username;
+  const bio=data.bio||"";
+  const joined=data.joined?new Date(data.joined).toLocaleDateString(undefined,{year:"numeric",month:"long"}):"Unknown";
+  const wins=data.wins||0;const losses=data.losses||0;const played=wins+losses;
+
+  const banner=document.createElement("div");banner.className="profile-banner";
+  banner.style.background=`linear-gradient(135deg,${colour},${colour}88)`;
+  box.appendChild(banner);
+  const body=document.createElement("div");body.className="profile-body";
+  const avatarWrap=document.createElement("div");avatarWrap.className="profile-avatar-wrap";
+  const avatar=document.createElement("div");avatar.className="profile-avatar-big";
+  avatar.style.background=colour;avatar.textContent=displayName[0].toUpperCase();
+  const dot=document.createElement("div");dot.className=`profile-status-dot ${getStatusCls(status)}`;
+  avatar.appendChild(dot);avatarWrap.appendChild(avatar);
+  // Close button instead of edit
+  const closeBtn=document.createElement("button");closeBtn.className="profile-edit-btn";closeBtn.textContent="Close";
+  closeBtn.addEventListener("click",()=>document.getElementById("profile-modal").classList.remove("open"));
+  avatarWrap.appendChild(closeBtn);body.appendChild(avatarWrap);
+  const nameEl=document.createElement("div");nameEl.className="profile-display-name";nameEl.textContent=displayName;body.appendChild(nameEl);
+  const userEl=document.createElement("div");userEl.className="profile-username";userEl.textContent=`@${username}`;body.appendChild(userEl);
+  const statusRow=document.createElement("div");statusRow.className="profile-status-row";
+  const sdot=document.createElement("div");sdot.className=`status-dot-sm ${getStatusCls(status)}`;
+  statusRow.appendChild(sdot);statusRow.appendChild(document.createTextNode(getStatusLabel(status)));
+  body.appendChild(statusRow);
+  if(bio){const bl=document.createElement("div");bl.className="profile-section-label";bl.textContent="About Me";body.appendChild(bl);const bioEl=document.createElement("div");bioEl.className="profile-bio";bioEl.textContent=bio;body.appendChild(bioEl);}
+  const sl=document.createElement("div");sl.className="profile-section-label";sl.textContent="Game Stats";body.appendChild(sl);
+  const stats=document.createElement("div");stats.className="profile-stats";
+  [{val:played,label:"Played"},{val:wins,label:"Wins"},{val:losses,label:"Losses"}].forEach(({val,label})=>{
+    const s=document.createElement("div");s.className="profile-stat";
+    s.innerHTML=`<div class="profile-stat-val">${val}</div><div class="profile-stat-label">${label}</div>`;
+    stats.appendChild(s);
+  });
+  body.appendChild(stats);
+  const joinEl=document.createElement("div");joinEl.className="profile-join";joinEl.textContent=`Joined ${joined}`;body.appendChild(joinEl);
+  box.appendChild(body);
+  document.getElementById("profile-modal").classList.add("open");
+  document.getElementById("profile-modal").onclick=(e)=>{if(e.target===document.getElementById("profile-modal"))document.getElementById("profile-modal").classList.remove("open");};
 }
 
 function renderProfileView(data,editing){
@@ -1577,8 +1771,8 @@ function showNotif(name,text,chatName){
   el.innerHTML=`<strong>${name} · ${chatName}</strong>${(text||"").length>60?text.slice(0,60)+"…":text}`;
   el.style.display="block";clearTimeout(notifTimeout);
   notifTimeout=setTimeout(()=>el.style.display="none",3500);
-  // Real OS notification — fires even when tab is in background
-  if(Notification.permission==="granted"){
+  // Only fire OS notification when tab is not focused
+  if(Notification.permission==="granted"&&!document.hasFocus()){
     const n=new Notification(`${name} · ${chatName}`,{
       body:(text||"📷 Image").slice(0,100),
       icon:"https://ethaserm.github.io/JustUs/icon.png",
@@ -1616,6 +1810,18 @@ function showCtxMenu(e,id,type,name){
       }
     }
   });
+  // Disappearing messages
+  const d3=document.createElement("div");d3.className="ctx-item";d3.innerHTML='<span>⏳</span> Disappearing messages';
+  d3.addEventListener("click",()=>{
+    closeCtxMenu();
+    const opts=["Off","1 minute","5 minutes","1 hour","24 hours"];
+    const vals=[0,1,5,60,1440];
+    const choice=prompt(`Disappearing messages for this chat:\n${opts.map((o,i)=>`${i+1}. ${o}`).join("\n")}\n\nEnter number (1-5):`);
+    const idx=parseInt(choice)-1;
+    if(idx>=0&&idx<vals.length){setDisappearing(id,"dm",vals[idx]);alert(vals[idx]===0?"Disappearing messages off":`Messages will disappear after ${opts[idx]}`);}
+  });
+  menu.appendChild(d3);
+
   // Delete for everyone (DMs only)
   const d2=document.createElement("div");d2.className="ctx-item danger";d2.innerHTML='<span>🗑️</span> Delete for everyone';
   d2.addEventListener("click",()=>{
