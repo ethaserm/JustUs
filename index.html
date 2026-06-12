@@ -340,7 +340,7 @@ body{background:var(--bg);color:var(--text);}
 .profile-status-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);}
 .profile-section-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;}
 .profile-bio{font-size:13px;color:#aaa;line-height:1.5;white-space:pre-wrap;}
-.profile-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .profile-stat{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;}
 .profile-stat-val{font-size:18px;font-weight:700;color:var(--text);}
 .profile-stat-label{font-size:11px;color:var(--text3);margin-top:2px;}
@@ -405,7 +405,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(900px 500px at 85% -10%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 60%),
              radial-gradient(700px 500px at -10% 110%,color-mix(in srgb,var(--accent) 6%,transparent),transparent 60%);}
-#app,#auth-screen{position:relative;z-index:1;}
+#app{position:relative;z-index:1;}
+#auth-screen{z-index:200;}
 
 /* Auth glow-up */
 #auth-screen{background:var(--bg);overflow:hidden;}
@@ -486,6 +487,101 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 /* Pickers follow the sidebar */
 #app.sidebar-hidden #emoji-picker,#app.sidebar-hidden #giphy-picker,#app.sidebar-hidden #game-picker{left:12px;}
 
+/* ============ GAMES DESIGN ============ */
+#game-modal-title{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;letter-spacing:-0.01em;
+  padding-bottom:12px;border-bottom:1px solid var(--border);}
+.gm-title-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 22%,var(--bg3)),var(--bg3));
+  border:1px solid color-mix(in srgb,var(--accent) 30%,var(--border2));
+  box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 18%,transparent);}
+.game-status{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:7px 14px;width:fit-content;margin:0 auto;font-weight:500;}
+.game-turn{text-shadow:0 0 14px color-mix(in srgb,var(--accent) 50%,transparent);font-size:13px;color:var(--accent);}
+
+/* Game picker */
+#game-picker{width:250px;}
+.game-item{border:1px solid transparent;}
+.game-item:hover{border-color:color-mix(in srgb,var(--accent) 25%,transparent);background:color-mix(in srgb,var(--accent) 7%,var(--bg3));}
+.game-icon{width:32px;height:32px;border-radius:9px;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:17px;}
+.game-players-badge{font-size:10px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:20px;padding:2px 7px;flex-shrink:0;}
+
+/* Game cards in chat */
+.game-card{background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 7%,var(--bg2)),var(--bg2));}
+.game-card-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;
+  background:var(--bg3);border:1px solid color-mix(in srgb,var(--accent) 25%,var(--border2));}
+
+/* Tic Tac Toe */
+.ttt-board{gap:8px;width:216px;}
+.ttt-cell{width:66px;height:66px;border-radius:14px;font-size:30px;font-weight:800;transition:background .15s,box-shadow .15s,transform .1s;}
+.ttt-cell:hover:not(.taken){box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 50%,transparent);transform:scale(1.03);}
+.ttt-cell.taken{animation:markPop .18s cubic-bezier(.2,.9,.3,1.4);}
+.ttt-cell.x{color:var(--accent);text-shadow:0 0 16px color-mix(in srgb,var(--accent) 50%,transparent);}
+.ttt-cell.o{color:#3b82f6;text-shadow:0 0 16px rgba(59,130,246,0.45);}
+@keyframes markPop{from{transform:scale(.5);}to{transform:scale(1);}}
+
+/* Connect 4 */
+.c4-board{background:linear-gradient(160deg,#15233f,#0d1830);padding:10px;border-radius:14px;border:1px solid #24406e;box-shadow:0 10px 28px rgba(0,0,0,0.4);}
+.c4-cell{box-shadow:inset 0 2px 6px rgba(0,0,0,0.55);background:#0a0f1c;border-color:#1c2c4d;}
+.c4-cell.r{background:radial-gradient(circle at 32% 30%,#ff5a78,var(--accent) 65%);border-color:transparent;box-shadow:inset 0 -3px 6px rgba(0,0,0,0.35);}
+.c4-cell.y{background:radial-gradient(circle at 32% 30%,#ffe27a,#f5c518 65%);border-color:transparent;box-shadow:inset 0 -3px 6px rgba(0,0,0,0.35);}
+.c4-col-btn:hover:not(:disabled){color:var(--accent);transform:translateY(2px);}
+.c4-col-btn{transition:color .15s,transform .15s;}
+
+/* RPS */
+.rps-btn{transition:transform .15s,border-color .15s,box-shadow .2s;}
+.rps-btn:hover{transform:translateY(-3px) scale(1.06);border-color:var(--accent);box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 22%,transparent);}
+
+/* Wordle */
+.wordle-cell{border-radius:8px;transition:transform .15s;}
+.wordle-cell.correct,.wordle-cell.present,.wordle-cell.absent{animation:flipIn .35s ease;}
+@keyframes flipIn{0%{transform:rotateX(90deg);}100%{transform:rotateX(0);}}
+.wordle-cell.correct{box-shadow:0 0 14px rgba(34,197,94,0.35);}
+.wordle-cell.present{box-shadow:0 0 14px rgba(245,158,11,0.3);}
+
+/* Hangman */
+.hm-key{border-radius:8px;font-weight:600;transition:background .12s,border-color .12s,transform .1s;}
+.hm-key:hover:not(:disabled){border-color:var(--accent);transform:translateY(-2px);}
+.hm-letter{border-bottom-color:color-mix(in srgb,var(--accent) 60%,var(--text));}
+
+/* Battleship */
+.bs-grid{background:var(--bg);padding:6px;border-radius:10px;border:1px solid var(--border2);}
+.bs-cell{border-radius:4px;transition:background .12s,box-shadow .12s;}
+.bs-cell:hover:not(.hit):not(.miss){box-shadow:inset 0 0 0 1px var(--accent);}
+.bs-cell.hit{background:radial-gradient(circle,#ff6b85,var(--accent) 70%);animation:hitPulse .3s ease;}
+.bs-cell.miss{background:#16324f;}
+.bs-cell.ship{background:#2f4a33;border-color:#3d5c42;}
+.bs-label{font-weight:700;text-transform:uppercase;letter-spacing:0.06em;font-size:10px;color:var(--text3);}
+@keyframes hitPulse{0%{transform:scale(1.5);}100%{transform:scale(1);}}
+
+/* Uno */
+.uno-card{box-shadow:0 4px 10px rgba(0,0,0,0.35);transition:transform .12s,box-shadow .15s;}
+.uno-card:not([style*="opacity"]){cursor:pointer;}
+.uno-card:hover:not([style*="opacity"]){transform:translateY(-5px);box-shadow:0 10px 20px rgba(0,0,0,0.45);}
+
+/* In-game chat */
+#game-chat-panel{background:color-mix(in srgb,var(--bg) 70%,transparent);}
+.gchat-msg{background:var(--bg3);border-radius:10px;padding:5px 9px;}
+.gchat-msg.me{background:color-mix(in srgb,var(--accent) 14%,var(--bg3));}
+
+/* Reaction Duel */
+.reaction-pad{width:240px;height:160px;margin:0 auto;border-radius:18px;display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:800;letter-spacing:0.05em;cursor:pointer;user-select:none;-webkit-user-select:none;
+  transition:transform .08s;touch-action:manipulation;}
+.reaction-pad:active{transform:scale(0.97);}
+.reaction-pad.wait{background:linear-gradient(145deg,#7a1020,#4a0a14);color:#ffb3c0;box-shadow:inset 0 0 30px rgba(0,0,0,0.4);}
+.reaction-pad.go{background:linear-gradient(145deg,#2fdb74,#16a34a);color:#06270f;
+  box-shadow:0 0 36px rgba(34,197,94,0.55);animation:goFlash .25s ease;}
+@keyframes goFlash{from{transform:scale(0.92);filter:brightness(1.6);}to{transform:scale(1);filter:brightness(1);}}
+
+/* Snake leaderboard */
+.snake-lb{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;width:240px;margin:0 auto;}
+.snake-lb-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);padding-bottom:4px;border-bottom:1px solid var(--border);}
+.snake-lb-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+.snake-lb-row.me .snake-lb-name{color:var(--accent);font-weight:700;}
+.snake-lb-rank{width:24px;flex-shrink:0;text-align:center;font-size:12px;}
+.snake-lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.snake-lb-score{font-weight:800;font-variant-numeric:tabular-nums;}
+
 /* ============ MOBILE ============ */
 @media(max-width:700px){
   #sidebar{position:fixed;left:0;top:0;bottom:0;z-index:160;box-shadow:10px 0 36px rgba(0,0,0,0.55);}
@@ -513,6 +609,7 @@ const GAMES=[
   {id:"ttt",name:"Tic Tac Toe",icon:"⭕",desc:"Classic",players:"2"},
   {id:"c4",name:"Connect 4",icon:"🔴",desc:"Drop discs",players:"2"},
   {id:"rps",name:"Rock Paper Scissors",icon:"✊",desc:"Best of 3",players:"2"},
+  {id:"reaction",name:"Reaction Duel",icon:"⚡",desc:"Fastest tap wins, first to 3",players:"2"},
   {id:"wordle",name:"Wordle",icon:"🟩",desc:"Guess the word",players:"2"},
   {id:"hangman",name:"Hangman",icon:"🪢",desc:"Guess letters",players:"2"},
   {id:"chess",name:"Chess",icon:"♟️",desc:"Full game",players:"2"},
@@ -1128,7 +1225,22 @@ function sendMessage(){
   // Check if room is admin-only
   const room=ROOMS.find(r=>r.id===currentChatId);
   if(room?.adminOnly&&myUsername!==room.adminOnly)return;
-  push(ref(db,getMsgPath()),{name:myUsername,text,timestamp:Date.now()});
+  // Fun slash commands
+  const lower=text.toLowerCase();
+  let out=text;
+  if(lower.startsWith("/roll")){
+    const m=lower.match(/\/roll\s+d?(\d+)/);const sides=Math.max(2,Math.min(1000,m?parseInt(m[1]):6));
+    out=`🎲 ${myUsername} rolled a ${1+Math.floor(Math.random()*sides)} (d${sides})`;
+  } else if(lower.startsWith("/flip")){
+    out=`🪙 ${myUsername} flipped: ${Math.random()<0.5?"Heads":"Tails"}`;
+  } else if(lower.startsWith("/8ball")){
+    const q=text.slice(6).trim();
+    const ans=["It is certain ✅","Without a doubt ✅","Yes, definitely ✅","Most likely 👍","Signs point to yes 👍","Ask again later 🌀","Cannot predict now 🌀","Don't count on it 👎","My reply is no ❌","Very doubtful ❌","Outlook not so good 👎","Absolutely not ❌"];
+    out=`🎱 ${q?q+" — ":""}${ans[Math.floor(Math.random()*ans.length)]}`;
+  } else if(lower==="/help"){
+    out=`📖 Commands: /roll d20 · /flip · /8ball <question>`;
+  }
+  push(ref(db,getMsgPath()),{name:myUsername,text:out,timestamp:Date.now()});
   input.value="";input.style.height="auto";clearTyping();
 }
 function clearTyping(){
@@ -1303,7 +1415,7 @@ function buildGamePicker(){
     sec.textContent=cat.label;picker.appendChild(sec);
     games.forEach(g=>{
       const el=document.createElement("div");el.className="game-item";
-      el.innerHTML=`<span class="game-icon">${g.icon}</span><div><div class="game-name">${g.name}</div><div class="game-desc">${g.desc}</div></div>`;
+      el.innerHTML=`<span class="game-icon">${g.icon}</span><div style="flex:1"><div class="game-name">${g.name}</div><div class="game-desc">${g.desc}</div></div><span class="game-players-badge">${g.players}P</span>`;
       el.addEventListener("click",()=>{
         if(!currentChatId)return;
         picker.classList.remove("open");
@@ -1325,6 +1437,7 @@ window.closeGameModal=()=>{
   activeGameId=null;activeGameMsgId=null;activeGameData=null;
   if(snakeInterval){clearInterval(snakeInterval);snakeInterval=null;}
   if(snakeKeyHandler){document.removeEventListener("keydown",snakeKeyHandler);snakeKeyHandler=null;}
+  if(reactionGoTimer){clearTimeout(reactionGoTimer);reactionGoTimer=null;}
   if(gameUIUnsub){gameUIUnsub();gameUIUnsub=null;}
   if(gameChatUnsub){gameChatUnsub();gameChatUnsub=null;}
   if(drawingStrokesUnsub){drawingStrokesUnsub();drawingStrokesUnsub=null;}
@@ -1337,11 +1450,11 @@ function openGameModal(gameId,msgId,msgData){
   activeGameId=gameId;activeGameMsgId=msgId;activeGameData=msgData;
   document.getElementById("game-modal").classList.add("open");
   const game=GAMES.find(g=>g.id===gameId);
-  document.getElementById("game-modal-title").textContent=`${game.icon} ${game.name}`;
+  document.getElementById("game-modal-title").innerHTML=`<span class="gm-title-icon">${game.icon}</span><span>${game.name}</span>`;
   const body=document.getElementById("game-modal-body");body.innerHTML="<div class='game-status'>Loading…</div>";
   const gameRef=ref(db,`games/${msgId}`);
   const isHost=msgData.name===myUsername;
-  const TWO_PLAYER=["ttt","c4","rps","wordle","hangman","chess","battleship"];
+  const TWO_PLAYER=["ttt","c4","rps","reaction","wordle","hangman","chess","battleship"];
 
   get(gameRef).then(snap=>{
     if(!snap.exists()){
@@ -1372,6 +1485,7 @@ function initGameState(gameId,gameRef,existingState){
   if(gameId==="ttt")set(gameRef,{...base,board:Array(9).fill("")});
   else if(gameId==="c4")set(gameRef,{...base,board:Array(42).fill("")});
   else if(gameId==="rps")set(gameRef,{...base,p1choice:null,p2choice:null,round:1,p1score:0,p2score:0});
+  else if(gameId==="reaction")set(gameRef,{...base,round:1,p1score:0,p2score:0,p1time:null,p2time:null,goAt:null});
   else if(gameId==="wordle"){
     const words=["CRANE","SLATE","AUDIO","BRICK","FLAME","GRANT","HASTE","IRONY","JAZZY","KNEEL","LEMON","MAPLE","NERVE","OXIDE","PIANO","QUILT","RIVAL","SHORE","TIGER","ULTRA","VIVID","WORLD","CLOUD","DRIFT","FROST","CHESS","SNAKE","JUICE","PLATE","GLOBE"];
     set(gameRef,{...base,word:words[Math.floor(Math.random()*words.length)],guesses:[],solved:false});
@@ -1401,10 +1515,12 @@ function renderGameUI(gameId,gameRef,body){
     if(!document.getElementById("game-modal").classList.contains("open"))return;
     if(!snap.exists()){body.innerHTML='<div class="game-status">Loading…</div>';return;}
     const state=snap.val();
+    if(["win","done","checkmate"].includes(state.status)||state.solved)recordGameResult(state,activeGameMsgId);
     body.innerHTML="";
     if(gameId==="ttt")renderTTT(state,gameRef,body);
     else if(gameId==="c4")renderC4(state,gameRef,body);
     else if(gameId==="rps")renderRPS(state,gameRef,body);
+    else if(gameId==="reaction")renderReaction(state,gameRef,body);
     else if(gameId==="wordle")renderWordle(state,gameRef,body);
     else if(gameId==="hangman")renderHangman(state,gameRef,body);
     else if(gameId==="chess")renderChess(state,gameRef,body);
@@ -1465,6 +1581,44 @@ function myRole(state){
 function otherPlayer(state){return state.player1===myUsername?state.player2:state.player1;}
 function isMyTurn(state){return state.turn===myUsername&&state.status==="playing";}
 
+// ---- WIN/LOSS TRACKING ----
+// Each client records only its OWN stat, guarded by a flag inside the game node
+// so reopening a finished game (or onValue refiring) can never double count.
+function recordGameResult(state,msgId){
+  if(!myUsername||!msgId)return;
+  if(state.statsRecorded&&state.statsRecorded[myUsername])return;
+  const participants=state.players?Object.keys(state.players):[state.player1,state.player2].filter(Boolean);
+  if(!participants.includes(myUsername))return;
+  const winner=state.winner||(state.solved&&state.solver)||null;
+  let outcome=null;
+  if(winner&&winner!=="Draw"){
+    if(winner==="Mafia"||winner==="Villagers"){
+      const role=state.roles&&state.roles[myUsername];if(!role)return;
+      outcome=((winner==="Mafia")===(role==="Mafia"))?"win":"loss";
+    } else if(participants.includes(winner)){
+      outcome=winner===myUsername?"win":"loss";
+    }
+  } else if(state.coopResult){
+    outcome=state.coopResult;
+  } else if(state.loser){
+    outcome=state.loser===myUsername?"loss":"win";
+  }
+  if(!outcome)return;
+  set(ref(db,`games/${msgId}/statsRecorded/${myUsername}`),true);
+  get(ref(db,`users/${myUsername}`)).then(s=>{
+    const u=s.val()||{};
+    if(outcome==="win"){
+      const ns=(u.streak||0)+1;
+      set(ref(db,`users/${myUsername}/wins`),(u.wins||0)+1);
+      set(ref(db,`users/${myUsername}/streak`),ns);
+      if(ns>(u.bestStreak||0))set(ref(db,`users/${myUsername}/bestStreak`),ns);
+    }else{
+      set(ref(db,`users/${myUsername}/losses`),(u.losses||0)+1);
+      set(ref(db,`users/${myUsername}/streak`),0);
+    }
+  });
+}
+
 // TTT
 function renderTTT(state,gameRef,body){
   const role=myRole(state);
@@ -1477,7 +1631,7 @@ function renderTTT(state,gameRef,body){
   body.appendChild(statusEl);
   const board=document.createElement("div");board.className="ttt-board";
   (state.board||Array(9).fill("")).forEach((cell,i)=>{
-    const sq=document.createElement("div");sq.className="ttt-cell"+(cell?" taken":"");
+    const sq=document.createElement("div");sq.className="ttt-cell"+(cell?" taken "+(cell==="X"?"x":"o"):"");
     sq.textContent=cell;
     if(!cell&&mark&&isMyTurn(state)){
       sq.style.cursor="pointer";
@@ -1594,6 +1748,76 @@ function renderRPS(state,gameRef,body){
   }
 }
 
+// ---- REACTION DUEL ----
+let reactionGoTimer=null;
+function renderReaction(state,gameRef,body){
+  const role=myRole(state);
+  if(reactionGoTimer){clearTimeout(reactionGoTimer);reactionGoTimer=null;}
+  const statusEl=document.createElement("div");statusEl.className="game-status";
+  if(state.status==="waiting"||!state.player2){statusEl.textContent="Waiting for opponent…";body.appendChild(statusEl);return;}
+  body.appendChild(statusEl);
+  const scoreEl=document.createElement("div");scoreEl.className="game-turn";
+  scoreEl.textContent=`${state.player1}: ${state.p1score||0} — ${state.player2}: ${state.p2score||0} | Round ${state.round||1} (first to 3)`;
+  body.appendChild(scoreEl);
+
+  if(state.status==="done"){
+    statusEl.textContent=`🏆 ${state.winner} wins the duel!`;
+    if(role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";
+      rb.addEventListener("click",()=>initGameState("reaction",gameRef,state));body.appendChild(rb);}
+    return;
+  }
+
+  // p1 arms the round with a random GO time (2–5s out)
+  if(!state.goAt&&role==="p1"){
+    set(ref(db,`games/${activeGameMsgId}/goAt`),Date.now()+2000+Math.floor(Math.random()*3000));
+  }
+  if(!state.goAt){statusEl.textContent="Get ready…";return;}
+
+  const myTime=role==="p1"?state.p1time:role==="p2"?state.p2time:undefined;
+  const oppTime=role==="p1"?state.p2time:state.p1time;
+  const fmt=t=>t>=99999?"Too early! ❌":`${t}ms`;
+
+  if(myTime==null&&role){
+    statusEl.textContent="Tap the pad when it turns GREEN";
+    const pad=document.createElement("div");pad.className="reaction-pad wait";pad.textContent="WAIT…";
+    body.appendChild(pad);
+    const arm=()=>{if(document.body.contains(pad)){pad.classList.remove("wait");pad.classList.add("go");pad.textContent="TAP!";}};
+    const delay=state.goAt-Date.now();
+    if(delay<=0)arm();else reactionGoTimer=setTimeout(arm,delay);
+    let tapped=false;
+    pad.addEventListener("pointerdown",()=>{
+      if(tapped)return;tapped=true;
+      const now=Date.now();
+      const rt=now<state.goAt?99999:now-state.goAt;
+      set(ref(db,`games/${activeGameMsgId}/${role==="p1"?"p1time":"p2time"}`),rt);
+    });
+    return;
+  }
+
+  if(myTime!=null){
+    const me=document.createElement("div");me.className="game-status";me.textContent=`You: ${fmt(myTime)}`;body.appendChild(me);
+    if(oppTime==null){
+      const w=document.createElement("div");w.className="game-status";w.textContent="Waiting for opponent…";body.appendChild(w);
+    } else {
+      const res=document.createElement("div");res.className="game-status";
+      const iWon=myTime<oppTime;const tie=myTime===oppTime;
+      res.textContent=tie?"🤝 Dead heat — no point!":iWon?`✅ You were faster! (them: ${fmt(oppTime)})`:`❌ Too slow! (them: ${fmt(oppTime)})`;
+      body.appendChild(res);
+      if(role){
+        setTimeout(()=>{
+          const p1w=state.p1time<state.p2time;const p2w=state.p2time<state.p1time;
+          const ns1=(state.p1score||0)+(p1w?1:0);const ns2=(state.p2score||0)+(p2w?1:0);
+          if(ns1>=3||ns2>=3){
+            set(gameRef,{...state,p1score:ns1,p2score:ns2,p1time:null,p2time:null,goAt:null,status:"done",winner:ns1>=3?state.player1:state.player2});
+          } else {
+            set(gameRef,{...state,p1score:ns1,p2score:ns2,p1time:null,p2time:null,round:(state.round||1)+1,goAt:Date.now()+2000+Math.floor(Math.random()*3000)});
+          }
+        },1800);
+      }
+    }
+  }
+}
+
 // Wordle
 function renderWordle(state,gameRef,body){
   const role=myRole(state);
@@ -1658,7 +1882,8 @@ function renderHangman(state,gameRef,body){
       if(guessed.includes(l))btn.disabled=true;
       else btn.addEventListener("click",()=>{
         const ng=[...guessed,l];const nw=word.includes(l)?wrong:wrong+1;
-        set(gameRef,{...state,guessed:ng,wrong:nw});
+        const nowWon=word.split("").every(x=>ng.includes(x));const nowLost=nw>=6;
+        set(gameRef,{...state,guessed:ng,wrong:nw,...(nowWon?{status:"done",coopResult:"win"}:nowLost?{status:"done",coopResult:"loss"}:{})});
       });
       keys.appendChild(btn);
     });
@@ -1718,7 +1943,7 @@ function renderChess(state,gameRef,body){
   if(!chessBoardEl||!document.body.contains(chessBoardEl)){
     chessBoardEl=document.createElement("div");
     chessBoardEl.id="chess-board-el";
-    chessBoardEl.style.cssText="display:grid;grid-template-columns:repeat(8,40px);grid-template-rows:repeat(8,40px);border:2px solid #555;border-radius:4px;overflow:hidden;margin:0 auto;";
+    chessBoardEl.style.cssText="display:grid;grid-template-columns:repeat(8,40px);grid-template-rows:repeat(8,40px);border:3px solid #4a3a2a;border-radius:8px;overflow:hidden;margin:0 auto;box-shadow:0 10px 30px rgba(0,0,0,0.45);";
     for(let i=0;i<64;i++){
       const sq=document.createElement("div");
       sq.style.cssText="width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;user-select:none;";
@@ -1806,29 +2031,37 @@ function getChessMoves(board,idx){
   return moves;
 }
 
-// Snake — solo game, anyone can play
+// Snake — solo game, anyone can play; high scores are tracked & ranked
 let snakeInterval=null;
 function renderSnake(state,gameRef,body){
   const W=20,H=20,SZ=15;
-  const scoreDiv=document.createElement("div");scoreDiv.className="game-turn";scoreDiv.textContent="Score: 0";body.appendChild(scoreDiv);
+  const myBest=(allUsers[myUsername]&&allUsers[myUsername].snakeHigh)||0;
+  const scoreDiv=document.createElement("div");scoreDiv.className="game-turn";scoreDiv.textContent=`Score: 0 · Best: ${myBest}`;body.appendChild(scoreDiv);
   const canvas=document.createElement("canvas");canvas.width=W*SZ;canvas.height=H*SZ;canvas.style.cssText="border-radius:8px;display:block;margin:0 auto;";body.appendChild(canvas);
   const ctx=canvas.getContext("2d");
-  let snake=[[10,10],[9,10],[8,10]];let dir=[1,0];let food=[15,10];let score=0;let running=true;
+  let snake=[[10,10],[9,10],[8,10]];let dir=[1,0];let food=[15,10];let score=0;let running=true;let best=myBest;
   const draw=()=>{
     const accent=getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()||"#dc143c";
     ctx.fillStyle="#0a0a0a";ctx.fillRect(0,0,W*SZ,H*SZ);
     ctx.fillStyle=accent;snake.forEach(([x,y])=>ctx.fillRect(x*SZ+1,y*SZ+1,SZ-2,SZ-2));
     ctx.fillStyle="#22c55e";ctx.fillRect(food[0]*SZ+1,food[1]*SZ+1,SZ-2,SZ-2);
-    scoreDiv.textContent=`Score: ${score}`;
+    scoreDiv.textContent=`Score: ${score} · Best: ${best}`;
   };
   const step=()=>{
     if(!running)return;
     const head=[snake[0][0]+dir[0],snake[0][1]+dir[1]];
     if(head[0]<0||head[0]>=W||head[1]<0||head[1]>=H||snake.some(([x,y])=>x===head[0]&&y===head[1])){
       running=false;clearInterval(snakeInterval);
-      ctx.fillStyle="rgba(0,0,0,0.65)";ctx.fillRect(0,0,W*SZ,H*SZ);
-      ctx.fillStyle="#fff";ctx.font="bold 16px sans-serif";ctx.textAlign="center";
-      ctx.fillText("Game Over!",W*SZ/2,H*SZ/2);ctx.font="13px sans-serif";ctx.fillText(`Score: ${score}`,W*SZ/2,H*SZ/2+22);
+      const isRecord=score>best;
+      if(isRecord){
+        best=score;
+        set(ref(db,`users/${myUsername}/snakeHigh`),score);
+        renderSnakeBoard(lbDiv,score); // refresh leaderboard with my new score
+      }
+      ctx.fillStyle="rgba(0,0,0,0.7)";ctx.fillRect(0,0,W*SZ,H*SZ);
+      ctx.fillStyle=isRecord?"#f5c518":"#fff";ctx.font="bold 16px Outfit,sans-serif";ctx.textAlign="center";
+      ctx.fillText(isRecord?"🏆 NEW HIGH SCORE!":"Game Over!",W*SZ/2,H*SZ/2);
+      ctx.font="13px Outfit,sans-serif";ctx.fillStyle="#fff";ctx.fillText(`Score: ${score}`,W*SZ/2,H*SZ/2+22);
       return;
     }
     snake.unshift(head);
@@ -1852,6 +2085,10 @@ function renderSnake(state,gameRef,body){
     mc.appendChild(btn);
   });
   body.appendChild(mc);
+  // Leaderboard
+  const lbDiv=document.createElement("div");lbDiv.className="snake-lb";
+  body.appendChild(lbDiv);
+  renderSnakeBoard(lbDiv);
   // Restart button
   const restart=document.createElement("button");restart.className="g-btn";restart.textContent="Restart";
   restart.addEventListener("click",()=>{
@@ -1864,6 +2101,23 @@ function renderSnake(state,gameRef,body){
   if(snakeInterval)clearInterval(snakeInterval);
   draw();
   snakeInterval=setInterval(step,130);
+}
+
+// Top 5 snake scores across everyone, freshly read so it's always current
+function renderSnakeBoard(el,myFreshScore){
+  if(!el)return;
+  get(ref(db,"users")).then(snap=>{
+    const users=snap.val()||{};
+    if(myFreshScore!=null&&users[myUsername])users[myUsername].snakeHigh=Math.max(users[myUsername].snakeHigh||0,myFreshScore);
+    const rows=Object.entries(users)
+      .map(([u,d])=>[u,(d&&d.snakeHigh)||0])
+      .filter(([,s])=>s>0)
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,5);
+    el.innerHTML=`<div class="snake-lb-title">🏆 Leaderboard</div>`+
+      (rows.length?rows.map(([u,s],i)=>`<div class="snake-lb-row${u===myUsername?" me":""}"><span class="snake-lb-rank">${["🥇","🥈","🥉"][i]||"#"+(i+1)}</span><span class="snake-lb-name">${u}</span><span class="snake-lb-score">${s}</span></div>`).join("")
+      :`<div class="snake-lb-row"><span class="snake-lb-name" style="color:var(--text3)">No scores yet — be first!</span></div>`);
+  });
 }
 
 // Battleship
@@ -1988,7 +2242,10 @@ function renderTrivia(state,gameRef,body){
       const qi=(state.qIndex||0)+1;
       nb.textContent=qi>=10?"Finish":"Next Question";
       nb.addEventListener("click",()=>{
-        if(qi>=10){set(gameRef,{...state,status:"done"});}
+        if(qi>=10){
+          const top=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
+          set(gameRef,{...state,status:"done",winner:top?top[0]:null});
+        }
         else nextTriviaQ(gameRef,state);
       });body.appendChild(nb);
     }
@@ -2192,7 +2449,7 @@ function renderDrawing(state,gameRef,body){
     const doGuess=()=>{
       const g=inp.value.trim().toLowerCase();if(!g)return;
       if(g===state.word?.toLowerCase()){
-        set(gameRef,{...state,status:"done",guesser:myUsername});
+        set(gameRef,{...state,status:"done",guesser:myUsername,winner:myUsername});
       } else {
         set(ref(db,`games/${activeGameMsgId}/guesses/${myUsername}`),g);
         inp.value="";
@@ -2335,7 +2592,7 @@ function renderBingo(state,gameRef,body){
     myCard.forEach((n,i)=>{
       const el=document.createElement("div");
       const isMarked=n===0||called.includes(n);
-      el.style.cssText=`width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:${isMarked?"#dc143c":"#1a1a1a"};border:1px solid #2a2a2a;color:#fff;`;
+      el.style.cssText=`width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:1px solid var(--border2);transition:background .2s,box-shadow .2s;${isMarked?"background:linear-gradient(135deg,var(--accent),var(--accent-dark));box-shadow:0 2px 10px color-mix(in srgb,var(--accent) 35%,transparent);color:#fff;":"background:var(--bg3);color:var(--text);"}`;
       el.textContent=n===0?"FREE":n;
       grid.appendChild(el);
     });
@@ -2428,7 +2685,7 @@ function renderUno(state,gameRef,body){
   // Hand
   const handDiv=document.createElement("div");handDiv.style.cssText="display:flex;flex-wrap:wrap;gap:4px;";
   myHand.forEach((card,i)=>{
-    const el=document.createElement("div");el.style.cssText=unoCardStyle(card);
+    const el=document.createElement("div");el.className="uno-card";el.style.cssText=unoCardStyle(card);
     el.textContent=card.v;
     const canPlay=isMyTurn&&(top?.c==="wild"||card.c===top?.c||card.v===top?.v||card.c==="wild");
     if(canPlay){
@@ -2859,7 +3116,7 @@ async function viewProfile(username){
   if(bio){const bl=document.createElement("div");bl.className="profile-section-label";bl.textContent="About Me";body.appendChild(bl);const bioEl=document.createElement("div");bioEl.className="profile-bio";bioEl.textContent=bio;body.appendChild(bioEl);}
   const sl=document.createElement("div");sl.className="profile-section-label";sl.textContent="Game Stats";body.appendChild(sl);
   const stats=document.createElement("div");stats.className="profile-stats";
-  [{val:played,label:"Played"},{val:wins,label:"Wins"},{val:losses,label:"Losses"}].forEach(({val,label})=>{
+  [{val:played,label:"Played"},{val:wins,label:"Wins"},{val:losses,label:"Losses"},{val:(data.streak||0)>0?`🔥${data.streak}`:(data.streak||0),label:"Streak"},{val:data.bestStreak||0,label:"Best Run"},{val:data.snakeHigh||0,label:"Snake PB"}].forEach(({val,label})=>{
     const s=document.createElement("div");s.className="profile-stat";
     s.innerHTML=`<div class="profile-stat-val">${val}</div><div class="profile-stat-label">${label}</div>`;
     stats.appendChild(s);
@@ -2925,7 +3182,7 @@ function renderProfileView(data,editing){
   // Stats
   const sl=document.createElement("div");sl.className="profile-section-label";sl.textContent="Game Stats";body.appendChild(sl);
   const stats=document.createElement("div");stats.className="profile-stats";
-  [{val:played,label:"Played"},{val:wins,label:"Wins"},{val:losses,label:"Losses"}].forEach(({val,label})=>{
+  [{val:played,label:"Played"},{val:wins,label:"Wins"},{val:losses,label:"Losses"},{val:(data.streak||0)>0?`🔥${data.streak}`:(data.streak||0),label:"Streak"},{val:data.bestStreak||0,label:"Best Run"},{val:data.snakeHigh||0,label:"Snake PB"}].forEach(({val,label})=>{
     const s=document.createElement("div");s.className="profile-stat";
     s.innerHTML=`<div class="profile-stat-val">${val}</div><div class="profile-stat-label">${label}</div>`;
     stats.appendChild(s);
