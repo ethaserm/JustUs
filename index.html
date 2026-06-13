@@ -563,6 +563,21 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .gchat-msg{background:var(--bg3);border-radius:10px;padding:5px 9px;}
 .gchat-msg.me{background:color-mix(in srgb,var(--accent) 14%,var(--bg3));}
 
+/* Coin Flip */
+.coin{font-size:72px;width:fit-content;margin:6px auto;transition:transform .2s;}
+.coin.flip{animation:coinFlip .9s ease-in-out;}
+@keyframes coinFlip{0%{transform:rotateY(0) scale(1);}50%{transform:rotateY(900deg) scale(1.25) translateY(-30px);}100%{transform:rotateY(1800deg) scale(1);}}
+.coin-stat{background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:8px 18px;text-align:center;font-size:12px;color:var(--text2);}
+.coin-stat b{color:var(--text);font-size:20px;}
+
+/* Daily Wordle */
+.dw-grid{display:grid;grid-template-columns:repeat(5,44px);grid-template-rows:repeat(6,44px);gap:5px;justify-content:center;margin:6px auto;}
+.dw-cell{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;text-transform:uppercase;
+  background:var(--bg3);border:2px solid var(--border2);color:var(--text);}
+.dw-cell.correct{background:#16a34a;border-color:#16a34a;color:#fff;animation:flipIn .35s ease;box-shadow:0 0 12px rgba(34,197,94,0.35);}
+.dw-cell.present{background:#ca8a04;border-color:#ca8a04;color:#fff;animation:flipIn .35s ease;}
+.dw-cell.absent{background:#2a2a2e;border-color:#2a2a2e;color:#888;animation:flipIn .35s ease;}
+
 /* Reaction Duel */
 .reaction-pad{width:240px;height:160px;margin:0 auto;border-radius:18px;display:flex;align-items:center;justify-content:center;
   font-size:26px;font-weight:800;letter-spacing:0.05em;cursor:pointer;user-select:none;-webkit-user-select:none;
@@ -614,7 +629,11 @@ const GAMES=[
   {id:"hangman",name:"Hangman",icon:"🪢",desc:"Guess letters",players:"2"},
   {id:"chess",name:"Chess",icon:"♟️",desc:"Full game",players:"2"},
   {id:"battleship",name:"Battleship",icon:"🚢",desc:"Sink ships",players:"2"},
+  {id:"pong",name:"Pong",icon:"🏓",desc:"First to 5 points",players:"2"},
   {id:"snake",name:"Snake",icon:"🐍",desc:"High score",players:"1"},
+  {id:"hilo",name:"Higher or Lower",icon:"🎴",desc:"Beat your best chain",players:"1"},
+  {id:"coinflip",name:"Coin Flip",icon:"🪙",desc:"Call it in the air",players:"1"},
+  {id:"dailywordle",name:"Daily Wordle",icon:"📅",desc:"One word a day for everyone",players:"1"},
   {id:"trivia",name:"Trivia Quiz",icon:"🧠",desc:"Race to answer",players:"3+"},
   {id:"wordassoc",name:"Word Association",icon:"💬",desc:"Keep the chain going",players:"3+"},
   {id:"drawing",name:"Drawing Game",icon:"🎨",desc:"Draw & guess",players:"3+"},
@@ -1432,11 +1451,14 @@ function buildGamePicker(){
 let activeGameId=null,activeGameMsgId=null,activeGameData=null;
 let drawingStrokesUnsub=null;
 let snakeKeyHandler=null;
+let pongLoop=null,pongKeyHandler=null;
 window.closeGameModal=()=>{
   document.getElementById("game-modal").classList.remove("open");
   activeGameId=null;activeGameMsgId=null;activeGameData=null;
   if(snakeInterval){clearInterval(snakeInterval);snakeInterval=null;}
   if(snakeKeyHandler){document.removeEventListener("keydown",snakeKeyHandler);snakeKeyHandler=null;}
+  if(pongLoop){cancelAnimationFrame(pongLoop);pongLoop=null;}
+  if(pongKeyHandler){document.removeEventListener("keydown",pongKeyHandler);document.removeEventListener("keyup",pongKeyHandler);pongKeyHandler=null;}
   if(reactionGoTimer){clearTimeout(reactionGoTimer);reactionGoTimer=null;}
   if(gameUIUnsub){gameUIUnsub();gameUIUnsub=null;}
   if(gameChatUnsub){gameChatUnsub();gameChatUnsub=null;}
@@ -1454,7 +1476,7 @@ function openGameModal(gameId,msgId,msgData){
   const body=document.getElementById("game-modal-body");body.innerHTML="<div class='game-status'>Loading…</div>";
   const gameRef=ref(db,`games/${msgId}`);
   const isHost=msgData.name===myUsername;
-  const TWO_PLAYER=["ttt","c4","rps","reaction","wordle","hangman","chess","battleship"];
+  const TWO_PLAYER=["ttt","c4","rps","reaction","wordle","hangman","chess","battleship","pong"];
 
   get(gameRef).then(snap=>{
     if(!snap.exists()){
@@ -1495,7 +1517,11 @@ function initGameState(gameId,gameRef,existingState){
     set(gameRef,{...base,word:words[Math.floor(Math.random()*words.length)],guessed:[],wrong:0});
   }
   else if(gameId==="chess")set(gameRef,{...base,board:initChessBoard(),turn:"white",status:p2?"playing":"waiting"});
+  else if(gameId==="pong")set(gameRef,{...base,status:p2?"playing":"waiting",p1y:120,p2y:120,bx:200,by:150,bvx:3.2,bvz:2.1,p1score:0,p2score:0,serve:Date.now()+1500});
   else if(gameId==="snake")set(gameRef,{player1:p1,player2:null,status:"waiting"});
+  else if(gameId==="hilo")set(gameRef,{player1:p1,player2:null,status:"playing"});
+  else if(gameId==="coinflip")set(gameRef,{player1:p1,player2:null,status:"playing"});
+  else if(gameId==="dailywordle")set(gameRef,{player1:p1,player2:null,status:"playing"});
   else if(gameId==="battleship"){
     set(gameRef,{player1:p1,player2:p2,status:p2?"playing":"waiting",p1ships:generateBattleshipBoard(),p2ships:null,p1shots:[],p2shots:[],turn:p1,phase:"setup"});
   }
@@ -1526,6 +1552,10 @@ function renderGameUI(gameId,gameRef,body){
     else if(gameId==="chess")renderChess(state,gameRef,body);
     else if(gameId==="snake")renderSnake(state,gameRef,body);
     else if(gameId==="battleship")renderBattleship(state,gameRef,body);
+    else if(gameId==="pong")renderPong(state,gameRef,body);
+    else if(gameId==="hilo")renderHiLo(state,gameRef,body);
+    else if(gameId==="coinflip")renderCoinFlip(state,gameRef,body);
+    else if(gameId==="dailywordle")renderDailyWordle(state,gameRef,body);
     else if(gameId==="trivia")renderTrivia(state,gameRef,body);
     else if(gameId==="wordassoc")renderWordAssoc(state,gameRef,body);
     else if(gameId==="drawing")renderDrawing(state,gameRef,body);
@@ -2117,6 +2147,313 @@ function renderSnakeBoard(el,myFreshScore){
     el.innerHTML=`<div class="snake-lb-title">🏆 Leaderboard</div>`+
       (rows.length?rows.map(([u,s],i)=>`<div class="snake-lb-row${u===myUsername?" me":""}"><span class="snake-lb-rank">${["🥇","🥈","🥉"][i]||"#"+(i+1)}</span><span class="snake-lb-name">${u}</span><span class="snake-lb-score">${s}</span></div>`).join("")
       :`<div class="snake-lb-row"><span class="snake-lb-name" style="color:var(--text3)">No scores yet — be first!</span></div>`);
+  });
+}
+
+// ==================== PONG (2-player, realtime) ====================
+// Host (player1) is the physics authority and writes ball + both scores.
+// Each client writes only its own paddle Y. First to 5 wins.
+function renderPong(state,gameRef,body){
+  const role=myRole(state);
+  const W=400,H=300,PADH=64,PADW=10,BALL=9;
+  const statusEl=document.createElement("div");statusEl.className="game-status";
+  if(state.status==="waiting"||!state.player2){statusEl.textContent="Waiting for opponent to join…";body.appendChild(statusEl);return;}
+  body.appendChild(statusEl);
+
+  const scoreEl=document.createElement("div");scoreEl.className="game-turn";
+  scoreEl.textContent=`${state.player1}: ${state.p1score||0} — ${state.player2}: ${state.p2score||0}  (first to 5)`;
+  body.appendChild(scoreEl);
+
+  if(state.status==="done"){
+    statusEl.textContent=`🏆 ${state.winner} wins!`;
+    if(role==="p1"){const rb=document.createElement("button");rb.className="g-btn";rb.textContent="Play Again";
+      rb.addEventListener("click",()=>initGameState("pong",gameRef,state));body.appendChild(rb);}
+    return;
+  }
+  statusEl.textContent=role?"You control the "+(role==="p1"?"LEFT":"RIGHT")+" paddle":"Spectating";
+
+  const canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;
+  canvas.style.cssText="border:2px solid var(--border2);border-radius:10px;display:block;margin:0 auto;background:#070707;touch-action:none;max-width:100%;";
+  body.appendChild(canvas);
+  const ctx=canvas.getContext("2d");
+
+  const hint=document.createElement("div");hint.style.cssText="text-align:center;color:var(--text3);font-size:11px;margin-top:4px;";
+  hint.textContent="↑ / ↓ keys or drag on the board";body.appendChild(hint);
+
+  // Local paddle target, smoothed toward the canvas
+  let myY=(role==="p2"?state.p2y:state.p1y)||(H/2-PADH/2);
+  const myKey=role==="p1"?"p1y":"p2y";
+  let keys={up:false,down:false};
+
+  if(pongKeyHandler){document.removeEventListener("keydown",pongKeyHandler);document.removeEventListener("keyup",pongKeyHandler);}
+  pongKeyHandler=e=>{
+    if(e.key!=="ArrowUp"&&e.key!=="ArrowDown")return;
+    e.preventDefault();
+    const down=e.type==="keydown";
+    if(e.key==="ArrowUp")keys.up=down;else keys.down=down;
+  };
+  document.addEventListener("keydown",pongKeyHandler);
+  document.addEventListener("keyup",pongKeyHandler);
+  const dragMove=e=>{
+    const r=canvas.getBoundingClientRect();const src=e.touches?e.touches[0]:e;
+    if(e.buttons===0&&!e.touches)return;
+    myY=Math.max(0,Math.min(H-PADH,(src.clientY-r.top)*(H/r.height)-PADH/2));
+  };
+  canvas.addEventListener("mousemove",dragMove);
+  canvas.addEventListener("touchmove",e=>{e.preventDefault();dragMove(e);},{passive:false});
+
+  let lastWrite=0;
+  const cache={...state};
+  // keep cache fresh as Firebase updates roll in
+  const cacheUnsub=onValue(gameRef,s=>{if(s.exists())Object.assign(cache,s.val());});
+
+  if(pongLoop)cancelAnimationFrame(pongLoop);
+  const accent=getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()||"#dc143c";
+
+  const loop=()=>{
+    if(!document.getElementById("game-modal").classList.contains("open")||activeGameId!=="pong"){cacheUnsub();return;}
+    if(cache.status==="done"){cacheUnsub();return;}
+    // Move my paddle
+    if(keys.up)myY-=6;if(keys.down)myY+=6;
+    myY=Math.max(0,Math.min(H-PADH,myY));
+
+    const now=Date.now();
+    if(now-lastWrite>45){set(ref(db,`games/${activeGameMsgId}/${myKey}`),Math.round(myY));lastWrite=now;}
+
+    // Host runs physics
+    if(role==="p1"){
+      let{bx,by,bvx,bvz,p1score,p2score}=cache;
+      if(bx==null){bx=W/2;by=H/2;bvx=3.2;bvz=2.1;}
+      const serveWait=cache.serve&&now<cache.serve;
+      if(!serveWait){
+        bx+=bvx;by+=bvz;
+        if(by<=BALL||by>=H-BALL)bvz=-bvz;
+        const p1y=myKey==="p1y"?myY:(cache.p1y||0);
+        const p2y=cache.p2y||0;
+        // left paddle
+        if(bx-BALL<=PADW&&by>=p1y&&by<=p1y+PADH&&bvx<0){bvx=-bvx*1.04;by+= (by-(p1y+PADH/2))*0.05;}
+        // right paddle
+        if(bx+BALL>=W-PADW&&by>=p2y&&by<=p2y+PADH&&bvx>0){bvx=-bvx*1.04;by+=(by-(p2y+PADH/2))*0.05;}
+        bvx=Math.max(-7,Math.min(7,bvx));
+        let scored=null;
+        if(bx<0){p2score=(p2score||0)+1;scored=true;}
+        if(bx>W){p1score=(p1score||0)+1;scored=true;}
+        if(scored){
+          const win=p1score>=5?cache.player1:p2score>=5?cache.player2:null;
+          set(gameRef,{...cache,bx:W/2,by:H/2,bvx:(bx<0?3.2:-3.2),bvz:2.1*(Math.random()>.5?1:-1),p1score,p2score,p1y:myKey==="p1y"?Math.round(myY):cache.p1y,serve:now+1200,...(win?{status:"done",winner:win}:{})});
+          cache.bx=W/2;cache.by=H/2;cache.p1score=p1score;cache.p2score=p2score;cache.serve=now+1200;
+          scoreEl.textContent=`${cache.player1}: ${p1score} — ${cache.player2}: ${p2score}  (first to 5)`;
+          if(win){statusEl.textContent=`🏆 ${win} wins!`;cacheUnsub();return;}
+        } else if(now-lastWrite<46){
+          set(ref(db,`games/${activeGameMsgId}/bx`),Math.round(bx));
+          set(ref(db,`games/${activeGameMsgId}/by`),Math.round(by));
+          set(ref(db,`games/${activeGameMsgId}/bvx`),bvx);
+          set(ref(db,`games/${activeGameMsgId}/bvz`),bvz);
+          cache.bx=bx;cache.by=by;cache.bvx=bvx;cache.bvz=bvz;
+        }
+      }
+    }
+
+    // Draw using cache (ball authority) + my local paddle
+    ctx.fillStyle="#070707";ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle="rgba(255,255,255,0.12)";ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.setLineDash([]);
+    const p1y=myKey==="p1y"?myY:(cache.p1y||0);
+    const p2y=myKey==="p2y"?myY:(cache.p2y||0);
+    ctx.fillStyle=accent;ctx.fillRect(0,p1y,PADW,PADH);
+    ctx.fillStyle="#3b82f6";ctx.fillRect(W-PADW,p2y,PADW,PADH);
+    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(cache.bx||W/2,cache.by||H/2,BALL,0,7);ctx.fill();
+    if(cache.serve&&Date.now()<cache.serve){ctx.fillStyle="#fff";ctx.font="bold 15px Outfit,sans-serif";ctx.textAlign="center";ctx.fillText("Get ready…",W/2,H/2-20);}
+    pongLoop=requestAnimationFrame(loop);
+  };
+  pongLoop=requestAnimationFrame(loop);
+}
+
+// ==================== HIGHER OR LOWER (solo, high-score chain) ====================
+function renderHiLo(state,gameRef,body){
+  const myBest=(allUsers[myUsername]&&allUsers[myUsername].hiloHigh)||0;
+  let best=myBest;
+  const rank=v=>v;
+  const suits=["♠","♥","♦","♣"];
+  const cardName=v=>({1:"A",11:"J",12:"Q",13:"K"}[v]||v);
+  let current=Math.floor(Math.random()*13)+1;
+  let next=null;let chain=0;let over=false;
+
+  const scoreDiv=document.createElement("div");scoreDiv.className="game-turn";body.appendChild(scoreDiv);
+  const cardWrap=document.createElement("div");cardWrap.style.cssText="display:flex;gap:14px;justify-content:center;align-items:center;margin:6px 0;";body.appendChild(cardWrap);
+
+  const makeCard=(v,hidden)=>{
+    const c=document.createElement("div");
+    const red=Math.random()>0.5;
+    c.style.cssText=`width:74px;height:104px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:26px;background:${hidden?"linear-gradient(135deg,var(--accent),var(--accent-dark))":"#fff"};color:${hidden?"#fff":(red?"#dc143c":"#111")};box-shadow:0 8px 20px rgba(0,0,0,0.4);border:1px solid rgba(0,0,0,0.1);`;
+    if(hidden){c.textContent="?";}
+    else{const s=suits[Math.floor(Math.random()*4)];c.innerHTML=`<div>${cardName(v)}</div><div style="font-size:20px">${s}</div>`;}
+    return c;
+  };
+
+  const btnRow=document.createElement("div");btnRow.style.cssText="display:flex;gap:8px;justify-content:center;";body.appendChild(btnRow);
+  const lbDiv=document.createElement("div");lbDiv.className="snake-lb";body.appendChild(lbDiv);
+  renderHiLoBoard(lbDiv);
+
+  const render=()=>{
+    scoreDiv.textContent=`Chain: ${chain} · Best: ${best}`;
+    cardWrap.innerHTML="";btnRow.innerHTML="";
+    cardWrap.appendChild(makeCard(current,false));
+    cardWrap.appendChild(makeCard(null,true));
+    if(over){
+      const restart=document.createElement("button");restart.className="g-btn";restart.textContent="New Game";
+      restart.addEventListener("click",()=>{current=Math.floor(Math.random()*13)+1;chain=0;over=false;render();});
+      btnRow.appendChild(restart);
+      return;
+    }
+    [{lbl:"⬆ Higher",hi:true},{lbl:"⬇ Lower",hi:false}].forEach(({lbl,hi})=>{
+      const b=document.createElement("button");b.className="g-btn";b.style.cssText="width:auto;flex:1;margin:0;";b.textContent=lbl;
+      b.addEventListener("click",()=>guess(hi));btnRow.appendChild(b);
+    });
+  };
+  const guess=(hi)=>{
+    next=Math.floor(Math.random()*13)+1;
+    const correct=next===current?true:(hi?next>current:next<current); // ties are safe
+    cardWrap.innerHTML="";cardWrap.appendChild(makeCard(current,false));cardWrap.appendChild(makeCard(next,false));
+    if(correct){
+      chain++;current=next;
+      if(chain>best){best=chain;set(ref(db,`users/${myUsername}/hiloHigh`),chain);renderHiLoBoard(lbDiv,chain);}
+      scoreDiv.textContent=`Chain: ${chain} · Best: ${best}`;
+      setTimeout(()=>render(),650);
+    }else{
+      over=true;
+      scoreDiv.innerHTML=`💥 Wrong! Final chain: <b>${chain}</b>`;
+      btnRow.innerHTML="";
+      const restart=document.createElement("button");restart.className="g-btn";restart.textContent="New Game";
+      restart.addEventListener("click",()=>{current=Math.floor(Math.random()*13)+1;chain=0;over=false;render();});
+      btnRow.appendChild(restart);
+    }
+  };
+  render();
+}
+function renderHiLoBoard(el,fresh){
+  if(!el)return;
+  get(ref(db,"users")).then(snap=>{
+    const users=snap.val()||{};
+    if(fresh!=null&&users[myUsername])users[myUsername].hiloHigh=Math.max(users[myUsername].hiloHigh||0,fresh);
+    const rows=Object.entries(users).map(([u,d])=>[u,(d&&d.hiloHigh)||0]).filter(([,s])=>s>0).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    el.innerHTML=`<div class="snake-lb-title">🏆 Longest Chains</div>`+
+      (rows.length?rows.map(([u,s],i)=>`<div class="snake-lb-row${u===myUsername?" me":""}"><span class="snake-lb-rank">${["🥇","🥈","🥉"][i]||"#"+(i+1)}</span><span class="snake-lb-name">${u}</span><span class="snake-lb-score">${s}</span></div>`).join("")
+      :`<div class="snake-lb-row"><span class="snake-lb-name" style="color:var(--text3)">No chains yet — go!</span></div>`);
+  });
+}
+
+// ==================== COIN FLIP (solo, with running tally) ====================
+function renderCoinFlip(state,gameRef,body){
+  let flipping=false;
+  const u=allUsers[myUsername]||{};
+  let heads=u.coinHeads||0,tails=u.coinTails||0;
+
+  const coin=document.createElement("div");coin.className="coin";coin.textContent="🪙";body.appendChild(coin);
+  const resultEl=document.createElement("div");resultEl.className="game-turn";resultEl.style.minHeight="20px";resultEl.textContent="Call it in the air…";body.appendChild(resultEl);
+
+  const tally=document.createElement("div");tally.style.cssText="display:flex;gap:10px;justify-content:center;";body.appendChild(tally);
+  const renderTally=()=>{tally.innerHTML=`<div class="coin-stat">Heads<br><b>${heads}</b></div><div class="coin-stat">Tails<br><b>${tails}</b></div>`;};
+  renderTally();
+
+  const flipBtn=document.createElement("button");flipBtn.className="g-btn";flipBtn.textContent="Flip Coin";body.appendChild(flipBtn);
+  flipBtn.addEventListener("click",()=>{
+    if(flipping)return;flipping=true;flipBtn.disabled=true;resultEl.textContent="…";
+    coin.classList.remove("flip");void coin.offsetWidth;coin.classList.add("flip");
+    const isHeads=Math.random()<0.5;
+    setTimeout(()=>{
+      coin.textContent=isHeads?"😎":"🌙";
+      resultEl.innerHTML=isHeads?"It's <b>HEADS</b>! 😎":"It's <b>TAILS</b>! 🌙";
+      if(isHeads){heads++;set(ref(db,`users/${myUsername}/coinHeads`),heads);}else{tails++;set(ref(db,`users/${myUsername}/coinTails`),tails);}
+      renderTally();flipping=false;flipBtn.disabled=false;
+      setTimeout(()=>{coin.textContent="🪙";},1400);
+    },900);
+  });
+}
+
+// ==================== DAILY WORDLE (one shared word per day for everyone) ====================
+const DW_WORDS=["CRANE","SLATE","AUDIO","BRICK","FLAME","GRANT","HASTE","IRONY","LEMON","MAPLE","NERVE","OXIDE","PIANO","QUILT","RIVAL","SHORE","TIGER","ULTRA","VIVID","WORLD","CLOUD","DRIFT","FROST","GLOBE","JUICE","PLATE","SCOUT","TRACE","WHARF","ZEBRA","BLAZE","CHARM","DODGE","EAGLE","FJORD","GROVE","HONEY","INLET","JOLLY","KOALA","LATCH","MIRTH","NOBLE","OZONE","PRISM","QUACK","ROUGE","SWIRL","TULIP","UNZIP"];
+function dailyWord(){
+  // Deterministic word from the date (UTC) so everyone sees the same one
+  const epochDay=Math.floor(Date.now()/86400000);
+  return DW_WORDS[epochDay%DW_WORDS.length];
+}
+function dailyKey(){const d=new Date();return `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}`;}
+
+function renderDailyWordle(state,gameRef,body){
+  const ANSWER=dailyWord();const dkey=dailyKey();
+  const saveBase=`users/${myUsername}/dailyWordle`;
+
+  const head=document.createElement("div");head.className="game-status";head.textContent=`Today's word · ${dkey} (UTC)`;body.appendChild(head);
+
+  get(ref(db,saveBase)).then(snap=>{
+    let data=snap.val();
+    if(!data||data.day!==dkey){data={day:dkey,guesses:[],done:false,won:false};}
+    renderBoard(data);
+  });
+
+  function renderBoard(data){
+    body.innerHTML="";
+    body.appendChild(head);
+    const guesses=data.guesses||[];
+    const grid=document.createElement("div");grid.className="dw-grid";body.appendChild(grid);
+    for(let r=0;r<6;r++){
+      const guess=guesses[r]||"";
+      for(let c=0;c<5;c++){
+        const cell=document.createElement("div");cell.className="dw-cell";
+        const ch=guess[c];
+        if(ch){
+          cell.textContent=ch;
+          if(ANSWER[c]===ch)cell.classList.add("correct");
+          else if(ANSWER.includes(ch))cell.classList.add("present");
+          else cell.classList.add("absent");
+        }
+        grid.appendChild(cell);
+      }
+    }
+
+    if(data.done){
+      const msg=document.createElement("div");msg.className="game-turn";
+      msg.textContent=data.won?`🎉 Got it in ${guesses.length}! Come back tomorrow.`:`💀 Out of guesses. It was ${ANSWER}.`;
+      body.appendChild(msg);
+      const lb=document.createElement("div");lb.className="snake-lb";body.appendChild(lb);
+      renderDWBoard(lb,dkey);
+      return;
+    }
+
+    const inputRow=document.createElement("div");inputRow.style.cssText="display:flex;gap:6px;justify-content:center;";
+    const inp=document.createElement("input");inp.className="wordle-input";inp.maxLength=5;inp.placeholder="5 letters";inp.style.textTransform="uppercase";
+    const sub=document.createElement("button");sub.className="g-btn";sub.style.cssText="width:auto;margin:0;";sub.textContent="Guess";
+    inputRow.appendChild(inp);inputRow.appendChild(sub);body.appendChild(inputRow);
+    inp.focus();
+
+    const submit=()=>{
+      const g=inp.value.toUpperCase().trim();
+      if(g.length!==5||!/^[A-Z]+$/.test(g)){inp.style.borderColor="#dc143c";setTimeout(()=>inp.style.borderColor="",600);return;}
+      const ng=[...guesses,g];
+      const won=g===ANSWER;
+      const done=won||ng.length>=6;
+      const newData={day:dkey,guesses:ng,done,won};
+      set(ref(db,saveBase),newData);
+      if(done){
+        // Record result on the shared daily leaderboard
+        set(ref(db,`dailyWordle/${dkey}/${myUsername}`),won?ng.length:0);
+      }
+      renderBoard(newData);
+    };
+    sub.addEventListener("click",submit);
+    inp.addEventListener("keydown",e=>{if(e.key==="Enter")submit();});
+  }
+}
+function renderDWBoard(el,dkey){
+  if(!el)return;
+  get(ref(db,`dailyWordle/${dkey}`)).then(snap=>{
+    const data=snap.val()||{};
+    const rows=Object.entries(data).map(([u,g])=>[u,g]).sort((a,b)=>{
+      const av=a[1]===0?99:a[1],bv=b[1]===0?99:b[1];return av-bv;
+    }).slice(0,8);
+    el.innerHTML=`<div class="snake-lb-title">📅 Today's Solvers</div>`+
+      (rows.length?rows.map(([u,g],i)=>`<div class="snake-lb-row${u===myUsername?" me":""}"><span class="snake-lb-rank">${g===0?"❌":(["🥇","🥈","🥉"][i]||"#"+(i+1))}</span><span class="snake-lb-name">${u}</span><span class="snake-lb-score">${g===0?"X":g+"/6"}</span></div>`).join("")
+      :`<div class="snake-lb-row"><span class="snake-lb-name" style="color:var(--text3)">Nobody's played today yet</span></div>`);
   });
 }
 
